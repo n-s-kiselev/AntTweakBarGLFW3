@@ -1,0 +1,61 @@
+####### Compiler, tools and options
+
+SO_EXT		= .dylib
+AR_EXT		= .a
+
+#---- Release
+CXXCFG   	= -O3
+LFLAGS		= -L../lib
+OUT_DIR		= bin64
+
+CXX      	= g++
+CXXFLAGS 	= $(CXXCFG) -Wall -fno-strict-aliasing -D_MACOSX
+CFLAGS 		= -O3 -Wall -fPIC -D_MACOSX
+INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include -Iglad/include
+
+LIBS		= ../lib/libAntTweakBar.dylib -lpthread -lm -framework AppKit -framework OpenGL
+
+DEL_FILE 	= rm -f
+DEL_DIR  	= rmdir
+EXP_PATH	= 'export DYLD_LIBRARY_PATH=`dirname $$0`/../../lib ; $$0.out'
+
+####### Files
+
+SRC_FILES	= TwSimpleGLUT.c TwSimpleSDL.c TwSimpleGLFW.c TwAdvanced1.cpp TwString.cpp TwDualGLUT.c TwGLCoreSDL.c
+
+####### Build rules
+
+first: all
+
+all: Makefile
+	@echo "===== Build TwSimpleGLUT ===="
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwSimpleGLUT.out
+	@echo $(EXP_PATH) > $(OUT_DIR)/TwSimpleGLUT && chmod +x $(OUT_DIR)/TwSimpleGLUT
+
+	@echo "===== Build TwDualGLUT ===="
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwDualGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwDualGLUT.out
+	@echo $(EXP_PATH) > $(OUT_DIR)/TwDualGLUT && chmod +x $(OUT_DIR)/TwDualGLUT
+
+	@echo "===== Build TwString ===="
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwString.out
+	@echo $(EXP_PATH) > $(OUT_DIR)/TwString && chmod +x $(OUT_DIR)/TwString
+
+	@echo "===== Build TwSimpleGLFW3 ===="
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW3.c $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwSimpleGLFW3
+
+	@echo "===== Build TwSimpleGLFW ===="
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW.c $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwSimpleGLFW
+
+
+# Optional builds:
+#	@echo "===== Build TwSimpleSDL ===="
+#	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleSDL.c $(LFLAGS) $(LIBS) -framework SDL -o $(OUT_DIR)/TwSimpleSDL.out
+
+#	@echo "===== Build TwAdvanced1 ===="
+#	$(CXX) $(CXXFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwAdvanced1.out
+
+clean:
+	@echo "===== Clean ====="
+	-$(DEL_FILE) *.o
+	-$(DEL_FILE) *~ core *.core *.stackdump
+	-$(DEL_FILE) $(OUT_DIR)/*.out
