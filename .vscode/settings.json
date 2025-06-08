@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "*.fsh": "glsl",
-        "*.vsh": "glsl",
-        "*.mx3": "go",
-        "*.mif": "tcl",
-        "glad.h": "c"
-    }
-}
