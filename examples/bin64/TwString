@@ -1,1 +1,0 @@
-export DYLD_LIBRARY_PATH=`dirname $0`/../../lib ; $0.out

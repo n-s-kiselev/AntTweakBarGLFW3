@@ -20,6 +20,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <X11/Xlib.h>
+
+int x11ErrorHandler(Display *d, XErrorEvent *e) {
+    char error_text[1024];
+    XGetErrorText(d, e->error_code, error_text, sizeof(error_text));
+    fprintf(stderr, "X11 Error: %s\n", error_text);
+    return 0;  // suppress crash
+}
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -113,9 +121,11 @@ static void resizeCallback(GLFWwindow* window, int width, int height)
     TwWindowSize(width, height);
 }
 
+
 // Main
 int main() 
-{  
+{ 
+  XSetErrorHandler(x11ErrorHandler);
   GLFWwindow* window; // GLFW3 window
   TwBar *bar;         // Pointer to a tweak bar
   
@@ -153,6 +163,7 @@ int main()
   // glfwSetWindowTitle(window, "AntTweakBar simple example using GLFW3");
   printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
 
+
   // Initialize AntTweakBar
   if (!TwInit(TW_OPENGL_CORE, NULL)) {
       const char* err = TwGetLastError();
@@ -167,6 +178,8 @@ int main()
   } while (width == 0 || height == 0); // Wait until we get a real size
 
   resizeCallback(window, width, height);
+
+
 
   // Create a tweak bar
   bar = TwNewBar("TweakBar");
@@ -193,6 +206,7 @@ int main()
   strcpy(myString, "Hello world");
   // Register as editable string (CDSTRING with default 512 chars)
   TwAddVarRW(bar, "Text", TW_TYPE_CDSTRING, &myString, " label='Text to change' ");
+
 
   glfwSetKeyCallback(window, keyCallback);
   glfwSetCharCallback(window, charCallback);

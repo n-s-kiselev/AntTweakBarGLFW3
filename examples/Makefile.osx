@@ -1,24 +1,21 @@
-####### Compiler, tools and options
-
-SO_EXT		= .dylib
-AR_EXT		= .a
+#Examples for AntTweakBar
+#MacOS
 
 #---- Release
-CXXCFG   	= -O3
+CPPCFG   	= -O3
 LFLAGS		= -L../lib
 OUT_DIR		= bin64
 
 CPP      	= g++
 CXX			= gcc
-CPPFLAGS 	= $(CPPCFG) -Wall -Wdeprecated-declarations -fPIC -fno-strict-aliasing -D_MACOSX
-CXXFLAGS 	= $(CPPCFG) -Wall -Wdeprecated-declarations -fPIC -fno-strict-aliasing -D_MACOSX
+CPPFLAGS 	= $(CPPCFG) -Wall -fPIC -fno-strict-aliasing -D_MACOSX
+CXXFLAGS 	= $(CPPCFG) -Wall -fPIC -fno-strict-aliasing -D_MACOSX
 INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include -Iglad/include
 
 LIBS		= ../lib/libAntTweakBarGLFW3.dylib -lpthread -lm -framework AppKit -lGLU -framework OpenGL
 
 DEL_FILE 	= rm -f
 DEL_DIR  	= rmdir
-EXP_PATH	= 'export DYLD_LIBRARY_PATH=`dirname $$0`/../../lib ; $$0.out'
 
 ####### Files
 
@@ -26,7 +23,7 @@ SRC_FILES	= TwSimpleGLUT.c TwSimpleSDL.c TwSimpleGLFW.c TwAdvanced1.cpp TwString
 
 ####### Build rules
 
-first: all
+.PHONY: all clean
 
 all: Makefile
 	@echo "===== Build TwSimpleGLUT ===="

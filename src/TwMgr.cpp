@@ -2081,12 +2081,13 @@ int ANT_CALL TwDraw()
         if( !g_TwMgr->m_CursorsCreated )
             g_TwMgr->CreateCursors();
     #elif defined(ANT_UNIX)
-        if( !g_TwMgr->m_CurrentXDisplay )
+        if( !g_TwMgr->m_CurrentXDisplay)
             g_TwMgr->m_CurrentXDisplay = glXGetCurrentDisplay();
         if( !g_TwMgr->m_CurrentXWindow )
             g_TwMgr->m_CurrentXWindow = glXGetCurrentDrawable();
-        if( g_TwMgr->m_CurrentXDisplay && !g_TwMgr->m_CursorsCreated )
-            g_TwMgr->CreateCursors();
+        if( g_TwMgr->m_CurrentXDisplay && !g_TwMgr->m_CursorsCreated ){
+            // g_TwMgr->CreateCursors();
+        }
     #endif
 
     // Autorepeat TW_MOUSE_PRESSED
@@ -6448,11 +6449,27 @@ void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
 
 static XErrorHandler s_PrevErrorHandler = NULL;
 
+// static int InactiveErrorHandler(Display *display, XErrorEvent *err)
+// {
+//     // fprintf(stderr, "Ignoring Xlib error: error code %d request code %d\n", err->error_code, err->request_code);
+//     // No exit!
+//     return 0 ;
+// }
+
 static int InactiveErrorHandler(Display *display, XErrorEvent *err)
 {
-    fprintf(stderr, "Ignoring Xlib error: error code %d request code %d\n", err->error_code, err->request_code);
-    // No exit!
-    return 0 ;
+    char errText[512];
+    XGetErrorText(display, err->error_code, errText, sizeof(errText));
+    fprintf(stderr,
+        "Xlib Error:\n"
+        "  Code: %d\n"
+        "  Request: %d\n"
+        "  Minor Code: %d\n"
+        "  Resource ID: 0x%lx\n"
+        "  Description: %s\n",
+        err->error_code, err->request_code, err->minor_code,
+        err->resourceid, errText);
+    return 0;
 }
 
 static void IgnoreXErrors()

@@ -316,6 +316,26 @@ struct CTwMgr
     CCursor             m_CursorCenter;
     CCursor             m_CursorPoint;
 
+    #ifdef ANT_GLFW3//NSK
+    GLFWcursor* m_CursorArrow= nullptr;
+    GLFWcursor* m_CursorMove= nullptr;
+    GLFWcursor* m_CursorWE= nullptr;
+    GLFWcursor* m_CursorNS= nullptr;
+    GLFWcursor* m_CursorTopLeft= nullptr;
+    GLFWcursor* m_CursorTopRight= nullptr;
+    GLFWcursor* m_CursorBottomLeft= nullptr;
+    GLFWcursor* m_CursorBottomRight= nullptr;    
+    GLFWcursor* m_CursorHelp= nullptr;
+    GLFWcursor* m_CursorHand= nullptr;
+    GLFWcursor* m_CursorCross= nullptr;
+    GLFWcursor* m_CursorUpArrow= nullptr;
+    GLFWcursor* m_CursorNo= nullptr;
+    GLFWcursor* m_CursorIBeam= nullptr;
+    GLFWcursor* m_RotoCursors[NB_ROTO_CURSORS]= nullptr;
+    GLFWcursor* m_CursorCenter= nullptr;
+    GLFWcursor* m_CursorPoint= nullptr;
+    #endif
+
     TwCopyCDStringToClient  m_CopyCDStringToClient;
     TwCopyStdStringToClient m_CopyStdStringToClient;
     size_t              m_ClientStdStringStructSize;

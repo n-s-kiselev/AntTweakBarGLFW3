@@ -11,21 +11,11 @@
 //
 //  ---------------------------------------------------------------------------
 
-
+#include <glad/glad.h>
 #include <AntTweakBar.h>
 
-#if defined(_WIN32) || defined(_WIN64)
-//  MiniSDL12.h is provided to avoid the need of having SDL installed to 
-//  recompile this example. Do not use it in your own programs, better
-//  install and use the actual SDL library SDK.
-#   define USE_MINI_SDL
-#endif
+#include <SDL.h>
 
-#ifdef USE_MINI_SDL
-#   include "../src/MiniSDL12.h"
-#else
-#   include <SDL/SDL.h>
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,82 +1,82 @@
-####### Compiler, tools and options
-
+# Examples for AntTweakBar
+# On Linux you may need to install libxmu-dev libglfw3-dev libsdl2-2.0-0 libsdl2-dev
 
 #---- Release
-CXXCFG   	= -O3
-LFLAGS		= -L../lib
-OUT_DIR		= bin64
-#---- Debug
-#CXXCFG   	= -g -D_DEBUG
-#LFLAGS		= -Wl -L../lib/debug64
-#OUT_DIR	= debug64
+CPPCFG    = -O3
+LFLAGS    = -L../lib
+OUT_DIR   = bin64
 
+CPP       = g++
+CC        = gcc
+CPPFLAGS  = $(CPPCFG) -Wall -fPIC -fno-strict-aliasing
+CFLAGS    = $(CPPCFG) -Wall -fPIC -fno-strict-aliasing
+INCPATH   = -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include -Iglad/include
 
-CXX      	= g++
-CXXFLAGS 	= $(CXXCFG) -Wall -fno-strict-aliasing
-INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include
-LIBS     	= -L/usr/X11R6/lib -lAntTweakBar -lGL -lGLU -lX11 -lXext -lXmu -lXrandr -lpthread -lm
+STATIC_LIB = ../lib/libAntTweakBarGLFW3.a 
+LIBS      = -L/usr/X11R6/lib -lGL -lGLU -lX11 -lXext -lXmu -lXrandr -lpthread -lm
 
-DEL_FILE 	= rm -f
-DEL_DIR  	= rmdir
-NO_STDERR	= 2> /dev/null
-EXP_SH      = '\#!/bin/sh'
-EXP_PATH	= 'export LD_LIBRARY_PATH=`dirname $$0`/../../lib ; $$0.out'
+DEL_FILE  = rm -f
+DEL_DIR   = rm -rf
 
 ####### Files
 
-
-SRC_FILES	= TwSimpleGLFW.c TwSimpleGLUT.c TwSimpleSDL.c TwAdvanced1.cpp TwString.cpp TwDualGLUT.c
-
+SRC_FILES = TwSimpleGLFW3.c TwSimpleGLUT.c TwSimpleSDL.c TwAdvanced1.cpp TwString.cpp TwDualGLUT.c
 
 ####### Build rules
 
+.PHONY: all clean
 
-#first:	depend all
-first:  all
+all: $(OUT_DIR)/TwSimpleGLUT $(OUT_DIR)/TwDualGLUT $(OUT_DIR)/TwSimpleGLFW3 
+# $(OUT_DIR)/TwSimpleSDL
 
-all: 	Makefile $(SRC_FILES)
+# Ensure output directory exists
+$(OUT_DIR):
+	mkdir -p $@
 
-	@echo "===== Build TwSimpleGLUT ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLUT.c $(LFLAGS) -lglut $(LIBS) -o $(OUT_DIR)/TwSimpleGLUT.out
-	@echo $(EXP_SH) > $(OUT_DIR)/TwSimpleGLUT
-	@echo $(EXP_PATH) >> $(OUT_DIR)/TwSimpleGLUT
-	@chmod +x $(OUT_DIR)/TwSimpleGLUT
-	@echo "To execute the example, run " $(OUT_DIR)/TwSimpleGLUT
+# GLAD compilation rule
+glad.o: glad/src/glad.c
+	$(CPP) -c $(CFLAGS) $(INCPATH) $< -o $@
 
-	@echo "===== Build TwSimpleSDL ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleSDL.c $(LFLAGS) -lSDL $(LIBS) -o $(OUT_DIR)/TwSimpleSDL.out
-	@echo $(EXP_SH) > $(OUT_DIR)/TwSimpleSDL
-	@echo $(EXP_PATH) >> $(OUT_DIR)/TwSimpleSDL
-	@chmod +x $(OUT_DIR)/TwSimpleSDL
-	@echo "To execute the example, run " $(OUT_DIR)/TwSimpleSDL
+# Build rules for each example
+$(OUT_DIR)/TwSimpleGLUT: TwSimpleGLUT.c glad.o | $(OUT_DIR)
+	@echo "===== Build TwSimpleGLUT ====="
+	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) -lglut -o $@
 
-	@echo "===== Build TwSimpleGLFW ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW.c $(LFLAGS) -lglfw $(LIBS) -o $(OUT_DIR)/TwSimpleGLFW.out
-	@echo $(EXP_SH) > $(OUT_DIR)/TwSimpleGLFW
-	@echo $(EXP_PATH) >> $(OUT_DIR)/TwSimpleGLFW
-	@chmod +x $(OUT_DIR)/TwSimpleGLFW
-	@echo "To execute the example, run " $(OUT_DIR)/TwSimpleGLFW
+$(OUT_DIR)/TwDualGLUT: TwDualGLUT.c glad.o | $(OUT_DIR)
+	@echo "===== Build TwDualGLUT ====="
+	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) -lglut -o $@
 
-	@echo "===== Build TwDualGLUT ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwDualGLUT.c $(LFLAGS) -lglut $(LIBS) -o $(OUT_DIR)/TwDualGLUT.out
-	@echo $(EXP_SH) > $(OUT_DIR)/TwDualGLUT
-	@echo $(EXP_PATH) >> $(OUT_DIR)/TwDualGLUT
-	@chmod +x $(OUT_DIR)/TwDualGLUT
-	@echo "To execute the example, run " $(OUT_DIR)/TwDualGLUT
+$(OUT_DIR)/TwSimpleGLFW3: TwSimpleGLFW3.c glad.o | $(OUT_DIR)
+	@echo "===== Build TwSimpleGLFW3 ====="
+	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) -lglfw -o $@
 
-	@echo "===== Build TwAdvanced1 ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) -lglfw $(LIBS) -o $(OUT_DIR)/TwAdvanced1.out
-	@echo $(EXP_SH) > $(OUT_DIR)/TwAdvanced1
-	@echo $(EXP_PATH) >> $(OUT_DIR)/TwAdvanced1
-	@chmod +x $(OUT_DIR)/TwAdvanced1
-	@echo "To execute the example, run " $(OUT_DIR)/TwAdvanced1
+# $(OUT_DIR)/TwSimpleSDL: TwSimpleSDL.c glad.o | $(OUT_DIR)
+# 	@echo "===== Build TwSimpleSDL ====="
+# 	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) `sdl2-config --cflags --libs` -o $@
 
-	@echo "===== Build TwString ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) -lglut $(LIBS) -o $(OUT_DIR)/TwString.out
-	@echo $(EXP_SH) > $(OUT_DIR)/TwString
-	@echo $(EXP_PATH) >> $(OUT_DIR)/TwString
-	@chmod +x $(OUT_DIR)/TwString
-	@echo "To execute the example, run " $(OUT_DIR)/TwString
+clean:
+	@echo "===== Clean ====="
+	-$(DEL_FILE) *.o
+	-$(DEL_FILE) *~ core *.core *.stackdump
+	-$(DEL_FILE) $(OUT_DIR)/*
+	-$(DEL_DIR) $(OUT_DIR) 2>/dev/null || true
+	@echo "Clean completed"
+
+
+
+# @echo "===== Build TwAdvanced1 ===="
+# $(CXX) $(CXXFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) -lglfw $(LIBS) -o $(OUT_DIR)/TwAdvanced1.out
+# @echo $(EXP_SH) > $(OUT_DIR)/TwAdvanced1
+# @echo $(EXP_PATH) >> $(OUT_DIR)/TwAdvanced1
+# @chmod +x $(OUT_DIR)/TwAdvanced1
+# @echo "To execute the example, run " $(OUT_DIR)/TwAdvanced1
+
+# @echo "===== Build TwString ===="
+# $(CXX) $(CXXFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) -lglut $(LIBS) -o $(OUT_DIR)/TwString.out
+# @echo $(EXP_SH) > $(OUT_DIR)/TwString
+# @echo $(EXP_PATH) >> $(OUT_DIR)/TwString
+# @chmod +x $(OUT_DIR)/TwString
+# @echo "To execute the example, run " $(OUT_DIR)/TwString
 
 # append dependencies to this Makefile
 #depend:
@@ -85,20 +85,3 @@ all: 	Makefile $(SRC_FILES)
 #	makedepend -a -Y -- $(CXXFLAGS) $(INCPATH) -- $(SRC_FILES) $(NO_STDERR)
 
 
-# clean temporary files
-clean:
-	@echo "===== Clean ====="
-	-$(DEL_FILE) *.o
-	-$(DEL_FILE) *~ core *.core *.stackdump
-	-$(DEL_FILE) debug64/*
-	-$(DEL_DIR) debug64
-
-	
-####### DEPENDENCIES
-
-TwSimpleGLFW.o: ../include/AntTweakBar.h
-TwSimpleGLUT.o: ../include/AntTweakBar.h
-TwDualGLUT.o:   ../include/AntTweakBar.h
-TwSimpleSDL.o:  ../include/AntTweakBar.h
-TwAdvanced1.o:  ../include/AntTweakBar.h
-TwString.o:     ../include/AntTweakBar.h

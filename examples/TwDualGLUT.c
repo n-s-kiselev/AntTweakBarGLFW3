@@ -300,11 +300,15 @@ void ReshapeSubWindow(int width, int height)
 // Function called at exit
 void Terminate(void)
 { 
-    int i;
-	for (i=0; i<2; i++) {
-		glutSetWindow(g_SubWindowData[i].WinID);	
-    	glDeleteLists(SHAPE_TEAPOT, NUM_SHAPES);
-	}
+    if (!glutGetWindow()) {
+        fprintf(stderr, "Skipping cleanup: no current GLUT window.\n");
+        return;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        glutSetWindow(g_SubWindowData[i].WinID);
+        glDeleteLists(SHAPE_TEAPOT, NUM_SHAPES);
+    }
     TwTerminate();
 }
 
@@ -438,8 +442,8 @@ void SetupSubWindow(int subWinIdx)
                " min=0.01 max=2.5 step=0.01 keyIncr=z keyDecr=Z help='Scale the object (1=original size).' ");
 
     // GLUT is buggy on MacOS, so we use a fixed FOV for the sub-windows.
-    // TwAddVarRW(win->Bar, "FOV", TW_TYPE_FLOAT, &win->FOV, 
-    //            " min=10 max=120 step=0.5 keyIncr=v keyDecr=V help='Change angle of the camera in degrees' ");
+    TwAddVarRW(win->Bar, "FOV", TW_TYPE_FLOAT, &win->FOV, 
+               " min=10 max=120 step=0.5 keyIncr=v keyDecr=V help='Change angle of the camera in degrees' ");
     // Add 'win->Rotation' to 'bar': this is a variable of type TW_TYPE_QUAT4F which defines the object's orientation
     TwAddVarRW(win->Bar, "ObjRotation", TW_TYPE_QUAT4F, &win->Rotation, 
                " label='Object rotation' open help='Change the object orientation.' ");
