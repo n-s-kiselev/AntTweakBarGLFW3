@@ -27,11 +27,14 @@
 #endif
 
 #if defined(USE_MINI_GLUT)
-#   include "../src/MiniGLUT.h"
+    #include "../src/MiniGLUT.h"
 #elif defined(_MACOSX)
-#   include <GLUT/glut.h>
+    #define GL_SILENCE_DEPRECATION
+    #include <GL/glu.h>
+    #include <GLUT/glut.h>
 #else
-#   include <GL/glut.h>
+    #include <GL/glu.h>
+    #include <GL/glut.h>
 #endif
 
 
@@ -45,6 +48,7 @@ typedef struct
 	TwBar *Bar;
 	Shape ObjectShape;
 	float Zoom;
+    float FOV;
 	float Rotation[4];
 	int   AutoRotate;
 	int   RotateTime;
@@ -170,88 +174,127 @@ void ReshapeMainWindow(int width, int height)
 // Callback function called by GLUT to render sub-window content
 void DisplaySubWindow(void)
 {
-    float v[4]; // will be used to set light parameters
-    float mat[4*4]; // rotation matrix
-    SubWindowData *win;
+    glutSetWindow(glutGetWindow());
+    float v[4];              // Light parameters
+    float mat[4 * 4];        // Rotation matrix
+    SubWindowData *win = GetCurrentSubWindowData();
 
-    win = GetCurrentSubWindowData();
     if (win == NULL) return;
 
-    // Tell AntTweakBar which is the current window
-    TwSetCurrentWindow(win->WinID);
+    // Get subwindow size each frame (needed for aspect ratio)
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    float aspect = (float)width / (float)height;
+    // --- Ensure viewport matches window size ---
+    glViewport(0, 0, width, height);
 
-    // Clear frame buffer
-    glClearColor(0, 0, 0, 1);
+    // --- Projection setup ---
+    glClearColor(1, 0, 0, 1); // RED before projection
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // --- Projection setup ---
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(win->FOV, aspect, 1.0, 100.0);
+
+    // On MacOs GLUT is known to be buggy, e.g. may not update the projection matrix:
+    // GLfloat proj[16];
+    // glGetFloatv(GL_PROJECTION_MATRIX, proj);
+    // printf("Projection matrix after gluPerspective: %f %f %f %f ...\n", proj[0], proj[1], proj[2], proj[3]);
+
+    // --- View setup ---
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+    // --- Clear Buffers ---
+    glClearColor(73.0f / 255, 25.0f / 255, 100.0f / 255, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
 
-    // Set light
+    // --- Setup lighting ---
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    v[0] = v[1] = v[2] = win->LightMultiplier*0.4f; v[3] = 1.0f;
+    v[0] = v[1] = v[2] = win->LightMultiplier * 0.4f; v[3] = 1.0f;
     glLightfv(GL_LIGHT0, GL_AMBIENT, v);
-    v[0] = v[1] = v[2] = win->LightMultiplier*0.8f; v[3] = 1.0f;
+    v[0] = v[1] = v[2] = win->LightMultiplier * 0.8f; v[3] = 1.0f;
     glLightfv(GL_LIGHT0, GL_DIFFUSE, v);
-    v[0] = -win->LightDirection[0]; v[1] = -win->LightDirection[1]; v[2] = -win->LightDirection[2]; v[3] = 0.0f;
+    v[0] = -win->LightDirection[0];
+    v[1] = -win->LightDirection[1];
+    v[2] = -win->LightDirection[2];
+    v[3] = 0.0f;
     glLightfv(GL_LIGHT0, GL_POSITION, v);
 
-    // Set material
+    // --- Material ---
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, win->MatAmbient);
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, win->MatDiffuse);
 
-    // Rotate and draw shape
-    glPushMatrix();
-    glTranslatef(0.5f, -0.3f, 0.0f);
-    if( win->AutoRotate ) 
-    {
+    // --- Object Transformations ---
+    if (win->AutoRotate) {
         float axis[3] = { 0, 1, 0 };
-        float angle = (float)(GetTimeMs()-win->RotateTime)/1000.0f;
+        float angle = (float)(GetTimeMs() - win->RotateTime) / 1000.0f;
         float quat[4];
         SetQuaternionFromAxisAngle(axis, angle, quat);
         MultiplyQuaternions(win->RotateStart, quat, win->Rotation);
     }
+
     ConvertQuaternionToMatrix(win->Rotation, mat);
+
+    glPushMatrix();
     glMultMatrixf(mat);
     glScalef(win->Zoom, win->Zoom, win->Zoom);
     glCallList(win->ObjectShape);
     glPopMatrix();
 
-    // Draw tweak bars
+    TwSetCurrentWindow(win->WinID);
     TwDraw();
 
-    // Present frame buffer
     glutSwapBuffers();
-
-    // Recall Display at next frame
     glutPostRedisplay();
 }
+
+void DisplaySubWindowTest(void)
+{
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(60, 1, 1.0, 100.0); // Should look very zoomed in
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBegin(GL_TRIANGLES);
+    glColor3f(1,0,0);
+    glVertex3f(-1, -1, 0);
+    glVertex3f( 1, -1, 0);
+    glVertex3f( 0,  1, 0);
+    glEnd();
+
+    glutSwapBuffers();
+}
+
+
 
 
 // Callback function called by GLUT when sub-window size has changed
 void ReshapeSubWindow(int width, int height)
 {
-	SubWindowData *win;
-	
-    win = GetCurrentSubWindowData();
+    SubWindowData *win = GetCurrentSubWindowData();
     if (win == NULL) return;
 
-    // Set OpenGL viewport and camera
     glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(40, (double)width/height, 1, 10);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt(0,0,5, 0,0,0, 0,1,0);
-    glTranslatef(0, 0.6f, -1);
 
-    // Send the new window size to AntTweakBar
     TwSetCurrentWindow(win->WinID);
     TwWindowSize(width, height);
 }
+
+
 
 
 // Function called at exit
@@ -331,7 +374,6 @@ int SpecialKeyCB(int glutKey, int mouseX, int mouseY)
 	return TwEventSpecialGLUT(glutKey,mouseX,mouseY);	
 }
 
-
 // Setup new sub-window
 void SetupSubWindow(int subWinIdx) 
 {
@@ -342,6 +384,7 @@ void SetupSubWindow(int subWinIdx)
     win = &g_SubWindowData[subWinIdx];
     win->ObjectShape = (subWinIdx == 0) ? SHAPE_TEAPOT : SHAPE_TORUS;
 	win->Zoom = 1;
+    win->FOV = 60;
 	win->AutoRotate = (subWinIdx == 0);
     win->MatAmbient[0] = (subWinIdx == 1) ? 0.0f : 0.5f;; win->MatAmbient[1] = win->MatAmbient[2] = 0.2f; win->MatAmbient[3] = 1;
     win->MatDiffuse[0] = (subWinIdx == 1) ? 0.0f : 1.0f; win->MatDiffuse[1] = 1; win->MatDiffuse[2] = 0; win->MatDiffuse[3] = 1;
@@ -352,6 +395,8 @@ void SetupSubWindow(int subWinIdx)
     SetQuaternionFromAxisAngle(axis, angle, win->RotateStart);
 	
 	glutSetWindow(win->WinID);
+    glClearColor(subWinIdx, subWinIdx, subWinIdx, 1); // black or white background
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Set GLUT callbacks
     glutDisplayFunc(DisplaySubWindow);
     glutReshapeFunc(ReshapeSubWindow);
@@ -381,9 +426,6 @@ void SetupSubWindow(int subWinIdx)
     glutSolidCone(1.0, 1.5, 64, 4);
     glEndList();
 
-    // Declare this window as current for AntTweakBar.
-    // Here, this will create a new AntTweakBar context for this window,
-    // which will be identified by the number WinID.
     TwSetCurrentWindow(win->WinID);
 
     // Create a tweak bar
@@ -395,6 +437,9 @@ void SetupSubWindow(int subWinIdx)
     TwAddVarRW(win->Bar, "Zoom", TW_TYPE_FLOAT, &win->Zoom, 
                " min=0.01 max=2.5 step=0.01 keyIncr=z keyDecr=Z help='Scale the object (1=original size).' ");
 
+    // GLUT is buggy on MacOS, so we use a fixed FOV for the sub-windows.
+    // TwAddVarRW(win->Bar, "FOV", TW_TYPE_FLOAT, &win->FOV, 
+    //            " min=10 max=120 step=0.5 keyIncr=v keyDecr=V help='Change angle of the camera in degrees' ");
     // Add 'win->Rotation' to 'bar': this is a variable of type TW_TYPE_QUAT4F which defines the object's orientation
     TwAddVarRW(win->Bar, "ObjRotation", TW_TYPE_QUAT4F, &win->Rotation, 
                " label='Object rotation' open help='Change the object orientation.' ");
@@ -432,6 +477,7 @@ void SetupSubWindow(int subWinIdx)
 }
 
 
+
 // Main
 int main(int argc, char *argv[])
 {	
@@ -456,10 +502,9 @@ int main(int argc, char *argv[])
     SetupSubWindow(1);
     
     atexit(Terminate);  // Called after glutMainLoop ends
-
+    printf("OpenGL version: %s\n", glGetString(GL_VERSION));    
     // Call the GLUT main loop
     glutMainLoop();
 
     return 0;
 }
-

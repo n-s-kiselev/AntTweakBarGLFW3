@@ -8,12 +8,13 @@ CXXCFG   	= -O3
 LFLAGS		= -L../lib
 OUT_DIR		= bin64
 
-CXX      	= g++
-CXXFLAGS 	= $(CXXCFG) -Wall -fno-strict-aliasing -D_MACOSX
-CFLAGS 		= -O3 -Wall -fPIC -D_MACOSX
+CPP      	= g++
+CXX			= gcc
+CPPFLAGS 	= $(CPPCFG) -Wall -Wdeprecated-declarations -fPIC -fno-strict-aliasing -D_MACOSX
+CXXFLAGS 	= $(CPPCFG) -Wall -Wdeprecated-declarations -fPIC -fno-strict-aliasing -D_MACOSX
 INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include -Iglad/include
 
-LIBS		= ../lib/libAntTweakBar.dylib -lpthread -lm -framework AppKit -framework OpenGL
+LIBS		= ../lib/libAntTweakBarGLFW3.dylib -lpthread -lm -framework AppKit -lGLU -framework OpenGL
 
 DEL_FILE 	= rm -f
 DEL_DIR  	= rmdir
@@ -29,15 +30,13 @@ first: all
 
 all: Makefile
 	@echo "===== Build TwSimpleGLUT ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwSimpleGLUT.out
-	@echo $(EXP_PATH) > $(OUT_DIR)/TwSimpleGLUT && chmod +x $(OUT_DIR)/TwSimpleGLUT
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwSimpleGLUT
 
 	@echo "===== Build TwDualGLUT ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwDualGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwDualGLUT.out
-	@echo $(EXP_PATH) > $(OUT_DIR)/TwDualGLUT && chmod +x $(OUT_DIR)/TwDualGLUT
+	$(CXX) $(CXXFLAGS) $(INCPATH) TwDualGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwDualGLUT
 
 	@echo "===== Build TwString ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwString.out
+	$(CPP) $(CPPFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwString.out
 	@echo $(EXP_PATH) > $(OUT_DIR)/TwString && chmod +x $(OUT_DIR)/TwString
 
 	@echo "===== Build TwSimpleGLFW3 ===="
@@ -49,10 +48,10 @@ all: Makefile
 
 # Optional builds:
 #	@echo "===== Build TwSimpleSDL ===="
-#	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleSDL.c $(LFLAGS) $(LIBS) -framework SDL -o $(OUT_DIR)/TwSimpleSDL.out
+#	$(CPP) $(CPPFLAGS) $(INCPATH) TwSimpleSDL.c $(LFLAGS) $(LIBS) -framework SDL -o $(OUT_DIR)/TwSimpleSDL.out
 
 #	@echo "===== Build TwAdvanced1 ===="
-#	$(CXX) $(CXXFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwAdvanced1.out
+#	$(CPP) $(CPPFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwAdvanced1.out
 
 clean:
 	@echo "===== Clean ====="

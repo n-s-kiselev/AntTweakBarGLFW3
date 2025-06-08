@@ -16,6 +16,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <AntTweakBar.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -27,7 +28,7 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
     int twMod = 0;
     bool ctrl;
     if (mods & GLFW_MOD_SHIFT) twMod |= TW_KMOD_SHIFT;
-    if (ctrl = (mods & GLFW_MOD_CONTROL)) twMod |= TW_KMOD_CTRL;
+    if ((ctrl = (mods & GLFW_MOD_CONTROL))) twMod |= TW_KMOD_CTRL;
     if (mods & GLFW_MOD_ALT) twMod |= TW_KMOD_ALT;
 
     int twKey = 0;
@@ -102,7 +103,7 @@ static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffs
 static void resizeCallback(GLFWwindow* window, int width, int height)
 {
     // Set OpenGL viewport and camera
-    // glViewport(0, 0, width, height);
+    glViewport(0, 0, width, height);
     // glMatrixMode(GL_PROJECTION);
     // glLoadIdentity();
     // gluPerspective(40, (double)width/height, 1, 10);
@@ -111,71 +112,6 @@ static void resizeCallback(GLFWwindow* window, int width, int height)
     // Send the new window size to AntTweakBar
     TwWindowSize(width, height);
 }
-
-// Callback function called by GLFW when window size changes
-// void GLFWCALL WindowSizeCB(int width, int height)
-// {
-//     // Set OpenGL viewport and camera
-//     glViewport(0, 0, width, height);
-//     glMatrixMode(GL_PROJECTION);
-//     glLoadIdentity();
-//     gluPerspective(40, (double)width/height, 1, 10);
-//     gluLookAt(-1,0,3, 0,0,0, 0,1,0);    
-    
-//     // Send the new window size to AntTweakBar
-//     TwWindowSize(width, height);
-// }
-
-
-// This example program draws a possibly transparent cube 
-void DrawModel(int wireframe)
-{
-    int pass, numPass;
-
-    // Enable OpenGL transparency and light (could have been done once at init)
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHT0);    // use default light diffuse and position
-    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-    glEnable(GL_LINE_SMOOTH);
-    glLineWidth(3.0);
-    
-    if( wireframe )
-    {
-        glDisable(GL_CULL_FACE);    
-        glDisable(GL_LIGHTING);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        numPass = 1;
-    }
-    else
-    {
-        glEnable(GL_CULL_FACE); 
-        glEnable(GL_LIGHTING);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        numPass = 2;
-    }
-
-    for( pass=0; pass<numPass; ++pass )
-    {
-        // Since the material could be transparent, we draw the convex model in 2 passes:
-        // first its back faces, and second its front faces.
-        glCullFace( (pass==0) ? GL_FRONT : GL_BACK );
-
-        // Draw the model (a cube)
-        glBegin(GL_QUADS);
-            glNormal3f(0,0,-1); glVertex3f(0,0,0); glVertex3f(0,1,0); glVertex3f(1,1,0); glVertex3f(1,0,0); // front face
-            glNormal3f(0,0,+1); glVertex3f(0,0,1); glVertex3f(1,0,1); glVertex3f(1,1,1); glVertex3f(0,1,1); // back face
-            glNormal3f(-1,0,0); glVertex3f(0,0,0); glVertex3f(0,0,1); glVertex3f(0,1,1); glVertex3f(0,1,0); // left face
-            glNormal3f(+1,0,0); glVertex3f(1,0,0); glVertex3f(1,1,0); glVertex3f(1,1,1); glVertex3f(1,0,1); // right face
-            glNormal3f(0,-1,0); glVertex3f(0,0,0); glVertex3f(1,0,0); glVertex3f(1,0,1); glVertex3f(0,0,1); // bottom face
-            glNormal3f(0,+1,0); glVertex3f(0,1,0); glVertex3f(0,1,1); glVertex3f(1,1,1); glVertex3f(1,1,0); // top face
-        glEnd();
-    }
-}
-
 
 // Main
 int main() 
@@ -217,22 +153,22 @@ int main()
   // glfwSetWindowTitle(window, "AntTweakBar simple example using GLFW3");
   printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
 
-  // int width, height;
-  // glfwGetFramebufferSize(window, &width, &height);
-  resizeCallback(window, 640, 480);
   // Initialize AntTweakBar
-  // TwInit(TW_OPENGL, NULL);
-
   if (!TwInit(TW_OPENGL_CORE, NULL)) {
       const char* err = TwGetLastError();
       fprintf(stderr, "TwInit failed: %s\n", err ? err : "Unknown error");
       fflush(stderr);
       return 1;
   }
-  // TwWindowSize(100, 300);
+  int width = 0, height = 0;
+  do {
+      glfwGetFramebufferSize(window, &width, &height);
+      glfwPollEvents(); // Ensure GLFW event loop updates window size
+  } while (width == 0 || height == 0); // Wait until we get a real size
+
+  resizeCallback(window, width, height);
+
   // Create a tweak bar
-  char *myString = (char *)malloc(1024);
-  strcpy(myString, "Initial text");
   bar = TwNewBar("TweakBar");
   TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
 
@@ -253,23 +189,10 @@ int main()
   // Add 'cubeColor' to 'bar': it is a modifable variable of type TW_TYPE_COLOR32 (32 bits color) with alpha
   TwAddVarRW(bar, "cubeColor", TW_TYPE_COLOR32, &cubeColor, 
               " label='Cube color' alpha help='Color and transparency of the cube.' ");
-  // TwAddVarRW(bar, "Text", TW_TYPE_CDSTRING, myString,
-  //             " label='Text to change' maxlen=1024 ");
-/*
-    // Set GLFW event callbacks
-    // - Redirect window size changes to the callback function WindowSizeCB
-    glfwSetWindowSizeCallback(WindowSizeCB);
-    // - Directly redirect GLFW mouse button events to AntTweakBar
-    glfwSetMouseButtonCallback((GLFWmousebuttonfun)TwEventMouseButtonGLFW);
-    // - Directly redirect GLFW mouse position events to AntTweakBar
-    glfwSetMousePosCallback((GLFWmouseposfun)TwEventMousePosGLFW);
-    // - Directly redirect GLFW mouse wheel events to AntTweakBar
-    glfwSetMouseWheelCallback((GLFWmousewheelfun)TwEventMouseWheelGLFW);
-    // - Directly redirect GLFW key events to AntTweakBar
-    glfwSetKeyCallback((GLFWkeyfun)TwEventKeyGLFW);
-    // - Directly redirect GLFW char events to AntTweakBar
-    glfwSetCharCallback((GLFWcharfun)TwEventCharGLFW);
-*/
+  char* myString = (char*)malloc(512);
+  strcpy(myString, "Hello world");
+  // Register as editable string (CDSTRING with default 512 chars)
+  TwAddVarRW(bar, "Text", TW_TYPE_CDSTRING, &myString, " label='Text to change' ");
 
   glfwSetKeyCallback(window, keyCallback);
   glfwSetCharCallback(window, charCallback);
@@ -281,39 +204,6 @@ int main()
 
   // Initialize time
   time = glfwGetTime();
-
-  // Main loop (repeated while window is not closed and [ESC] is not pressed)
-  // while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS)
-  // {
-  //     /*
-  //     // Clear frame buffer using bgColor
-  //     glClearColor(bgColor[0], bgColor[1], bgColor[2], 1);
-  //     glClear( GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT );
-
-  //     // Rotate model
-  //     dt = glfwGetTime() - time;
-  //     if( dt < 0 ) dt = 0;
-  //     time += dt;
-  //     turn += speed*dt;
-  //     glMatrixMode(GL_MODELVIEW);
-  //     glLoadIdentity();
-  //     glRotated(360.0*turn, 0.4, 1, 0.2);
-  //     glTranslated(-0.5, -0.5, -0.5);     
-  
-  //     // Set color and draw model
-  //     glColor4ubv(cubeColor);
-  //     DrawModel(wire);
-  //     */
-  //     // Draw tweak bars
-  //     TwDraw();
-
-  //     // Present frame buffer
-  //     glfwSwapBuffers(window);
-  //     glfwPollEvents(); 
-  // }
-
-
-
 
   while (!glfwWindowShouldClose(window)) {
       int width, height;

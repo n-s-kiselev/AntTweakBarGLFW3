@@ -27,11 +27,12 @@
 #endif
 
 #if defined(USE_MINI_GLUT)
-#   include "../src/MiniGLUT.h"
+    #include "../src/MiniGLUT.h"
 #elif defined(_MACOSX)
-#   include <GLUT/glut.h>
+    #define GL_SILENCE_DEPRECATION
+    #include <GLUT/glut.h>
 #else
-#   include <GL/glut.h>
+    #include <GL/glut.h>
 #endif
 
 // This example displays one of the following shapes
