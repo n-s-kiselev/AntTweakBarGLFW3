@@ -6,6 +6,7 @@
 *.user
 *.asp
 *.pch
+.vscode
 /src/debug32
 /src/debug64
 /src/release32
