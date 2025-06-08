@@ -20,14 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <X11/Xlib.h>
-
-int x11ErrorHandler(Display *d, XErrorEvent *e) {
-    char error_text[1024];
-    XGetErrorText(d, e->error_code, error_text, sizeof(error_text));
-    fprintf(stderr, "X11 Error: %s\n", error_text);
-    return 0;  // suppress crash
-}
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -125,7 +117,6 @@ static void resizeCallback(GLFWwindow* window, int width, int height)
 // Main
 int main() 
 { 
-  XSetErrorHandler(x11ErrorHandler);
   GLFWwindow* window; // GLFW3 window
   TwBar *bar;         // Pointer to a tweak bar
   

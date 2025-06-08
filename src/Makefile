@@ -22,7 +22,7 @@ endif
 
 # Toolchain
 CPP       = g++
-CXX       = gcc
+CC        = gcc
 AR        = ar cqs
 COPY      = cp -f
 DEL_FILE  = rm -f
@@ -31,7 +31,7 @@ SYMLINK   = ln -sf
 # Build configuration
 CPPCFG    = -O3
 CPPFLAGS += $(CPPCFG) -Wall -fno-strict-aliasing -D__PLACEMENT_NEW_INLINE
-CXXFLAGS += $(CPPCFG) -Wall
+CCFLAGS += $(CPPCFG) -Wall
 INCPATH   = -I../include -Iglad/include -I/usr/local/include -I/usr/X11R6/include -I/usr/include
 
 TARGET    = AntTweakBarGLFW3
@@ -58,7 +58,7 @@ endif
 
 .c.o:
 	@echo "===== Compiling $< ====="
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
+	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $<
 
 clean:
 	@echo "===== Cleaning up ====="

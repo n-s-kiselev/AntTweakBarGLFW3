@@ -1,87 +1,102 @@
-# Examples for AntTweakBar
-# On Linux you may need to install libxmu-dev libglfw3-dev libsdl2-2.0-0 libsdl2-dev
+# ==============================================================================
+# Cross-Platform Makefile for AntTweakBar Examples
+# ------------------------------------------------------------------------------
+# Supports:
+#   - Linux (Debian/Arch)
+#   - macOS (Intel & Apple Silicon)
+#   - Windows 10/11 (with MinGW)
+#
+# Windows notes:
+#   - Install MinGW (https://github.com/niXman/mingw-builds-binaries/releases)
+#   - Add C:\mingw64\bin to PATH
+#   - Run: mingw32-make rebuild && .\bin64\TwSimpleGLFW3.exe
+#
+# Author: Nikolai Kiselev
+# Date:   June 6, 2025
+# ==============================================================================
 
-#---- Release
-CPPCFG    = -O3
-LFLAGS    = -L../lib
-OUT_DIR   = bin64
+.PHONY: all clean rebuild
 
-CPP       = g++
-CC        = gcc
-CPPFLAGS  = $(CPPCFG) -Wall -fPIC -fno-strict-aliasing
-CFLAGS    = $(CPPCFG) -Wall -fPIC -fno-strict-aliasing
-INCPATH   = -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include -Iglad/include
+PROJECTS = TwSimpleGLUT TwDualGLUT TwSimpleGLFW3 TwAdvanced1 TwString
+OUT_DIR = bin64
+STATIC_LIB = ../lib/libAntTweakBarGLFW3.a
+SRC_GLAD = glad/src/glad.c
+OBJS_GLAD = glad.o
+SRC_DIR = .
+INCLUDE_DIRS = -I../include -Iglad/include
 
-STATIC_LIB = ../lib/libAntTweakBarGLFW3.a 
-LIBS      = -L/usr/X11R6/lib -lGL -lGLU -lX11 -lXext -lXmu -lXrandr -lpthread -lm
+# Detect platform
+ifeq ($(OS),Windows_NT)
+    EXT = .exe
+    CC = gcc
+    CXX = g++
+    PLATFORM_FLAG = -D OS_WINDOWS
+    LIBS_COMMON = -lopengl32 -lgdi32 -lwinmm -lpthread
+    LIB_GLFW = -lglfw3
+    LIB_GLUT = -lglut32
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        EXT =
+        CC = gcc
+        CXX = g++
+        PLATFORM_FLAG = -D OS_LINUX
+        LIBS_COMMON = -lGL -lGLU -lX11 -lXext -lXmu -lXrandr -lpthread -lm -ldl
+        LIB_GLFW = -lglfw
+        LIB_GLUT = -lglut
+    else ifeq ($(UNAME_S),Darwin)
+        EXT =
+        CC = clang
+        CXX = clang++
+        PLATFORM_FLAG = -D OS_MACOS -DGL_SILENCE_DEPRECATION
+        INCLUDE_DIRS += -I/opt/homebrew/include
+        LIBS_COMMON = -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
+        LIB_GLFW = -lglfw
+        LIB_GLUT = -framework GLUT
+    endif
+endif
 
-DEL_FILE  = rm -f
-DEL_DIR   = rm -rf
+CFLAGS = -Wall -O2 -fPIC -D_DEFAULT_SOURCE $(PLATFORM_FLAG) -I$(SRC_DIR) $(INCLUDE_DIRS)
+CXXFLAGS = $(CFLAGS)
 
-####### Files
+# Default build target
+all: $(OUT_DIR) $(addprefix $(OUT_DIR)/,$(addsuffix $(EXT),$(PROJECTS)))
 
-SRC_FILES = TwSimpleGLFW3.c TwSimpleGLUT.c TwSimpleSDL.c TwAdvanced1.cpp TwString.cpp TwDualGLUT.c
-
-####### Build rules
-
-.PHONY: all clean
-
-all: $(OUT_DIR)/TwSimpleGLUT $(OUT_DIR)/TwDualGLUT $(OUT_DIR)/TwSimpleGLFW3 
-# $(OUT_DIR)/TwSimpleSDL
-
-# Ensure output directory exists
 $(OUT_DIR):
 	mkdir -p $@
 
-# GLAD compilation rule
-glad.o: glad/src/glad.c
-	$(CPP) -c $(CFLAGS) $(INCPATH) $< -o $@
+# Build GLAD
+glad.o: $(SRC_GLAD)
+	$(CC) -c $< -o $@ $(CFLAGS)
 
-# Build rules for each example
-$(OUT_DIR)/TwSimpleGLUT: TwSimpleGLUT.c glad.o | $(OUT_DIR)
-	@echo "===== Build TwSimpleGLUT ====="
-	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) -lglut -o $@
+# --- Build rules for examples ---
+$(OUT_DIR)/TwSimpleGLUT$(EXT): TwSimpleGLUT.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwSimpleGLUT ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
 
-$(OUT_DIR)/TwDualGLUT: TwDualGLUT.c glad.o | $(OUT_DIR)
-	@echo "===== Build TwDualGLUT ====="
-	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) -lglut -o $@
+$(OUT_DIR)/TwDualGLUT$(EXT): TwDualGLUT.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwDualGLUT ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
 
-$(OUT_DIR)/TwSimpleGLFW3: TwSimpleGLFW3.c glad.o | $(OUT_DIR)
-	@echo "===== Build TwSimpleGLFW3 ====="
-	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) -lglfw -o $@
+$(OUT_DIR)/TwSimpleGLFW3$(EXT): TwSimpleGLFW3.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwSimpleGLFW3 ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
 
-# $(OUT_DIR)/TwSimpleSDL: TwSimpleSDL.c glad.o | $(OUT_DIR)
-# 	@echo "===== Build TwSimpleSDL ====="
-# 	$(CPP) $(CFLAGS) $(INCPATH) $^ $(STATIC_LIB) $(LFLAGS) $(LIBS) `sdl2-config --cflags --libs` -o $@
+$(OUT_DIR)/TwAdvanced1$(EXT): TwAdvanced1.cpp glad.o | $(OUT_DIR)
+	@echo "=== Building TwAdvanced1 ==="
+	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
+
+$(OUT_DIR)/TwString$(EXT): TwString.cpp glad.o | $(OUT_DIR)
+	@echo "=== Building TwString ==="
+	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
 
 clean:
-	@echo "===== Clean ====="
-	-$(DEL_FILE) *.o
-	-$(DEL_FILE) *~ core *.core *.stackdump
-	-$(DEL_FILE) $(OUT_DIR)/*
-	-$(DEL_DIR) $(OUT_DIR) 2>/dev/null || true
-	@echo "Clean completed"
+	@echo "=== Cleaning ==="
+ifeq ($(OS),Windows_NT)
+	del /F /Q $(OUT_DIR)\*.exe *.o
+else
+	rm -f $(OUT_DIR)/*$(EXT) *.o
+endif
+	@echo "=== Done ==="
 
-
-
-# @echo "===== Build TwAdvanced1 ===="
-# $(CXX) $(CXXFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) -lglfw $(LIBS) -o $(OUT_DIR)/TwAdvanced1.out
-# @echo $(EXP_SH) > $(OUT_DIR)/TwAdvanced1
-# @echo $(EXP_PATH) >> $(OUT_DIR)/TwAdvanced1
-# @chmod +x $(OUT_DIR)/TwAdvanced1
-# @echo "To execute the example, run " $(OUT_DIR)/TwAdvanced1
-
-# @echo "===== Build TwString ===="
-# $(CXX) $(CXXFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) -lglut $(LIBS) -o $(OUT_DIR)/TwString.out
-# @echo $(EXP_SH) > $(OUT_DIR)/TwString
-# @echo $(EXP_PATH) >> $(OUT_DIR)/TwString
-# @chmod +x $(OUT_DIR)/TwString
-# @echo "To execute the example, run " $(OUT_DIR)/TwString
-
-# append dependencies to this Makefile
-#depend:
-#	@echo "===== Make dependencies ====="
-#	makedepend -Y
-#	makedepend -a -Y -- $(CXXFLAGS) $(INCPATH) -- $(SRC_FILES) $(NO_STDERR)
-
-
+rebuild: clean all

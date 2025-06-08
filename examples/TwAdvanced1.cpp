@@ -22,10 +22,9 @@
 //
 //  ---------------------------------------------------------------------------
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <AntTweakBar.h>
-
-#define GLFW_DLL // use GLFW as a dynamically linked library
-#include "glfw.h"
 
 #include <cmath>
 #include <iostream>
@@ -36,6 +35,105 @@
 #endif
 
 const float FLOAT_2PI = 6.283185307f; // 2*PI
+
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  if (action == GLFW_PRESS || action == GLFW_REPEAT)
+  {
+    int twMod = 0;
+    bool ctrl;
+    if (mods & GLFW_MOD_SHIFT) twMod |= TW_KMOD_SHIFT;
+    if ((ctrl = (mods & GLFW_MOD_CONTROL))) twMod |= TW_KMOD_CTRL;
+    if (mods & GLFW_MOD_ALT) twMod |= TW_KMOD_ALT;
+
+    int twKey = 0;
+    switch (key)
+    {
+    case GLFW_KEY_BACKSPACE: twKey = TW_KEY_BACKSPACE; break;
+    case GLFW_KEY_TAB: twKey = TW_KEY_TAB; break;
+    //case GLFW_KEY_???: twKey = TW_KEY_CLEAR; break;
+    case GLFW_KEY_ENTER: twKey = TW_KEY_RETURN; break;
+    case GLFW_KEY_PAUSE: twKey = TW_KEY_PAUSE; break;
+    case GLFW_KEY_ESCAPE: twKey = TW_KEY_ESCAPE; break;
+    case GLFW_KEY_SPACE: twKey = TW_KEY_SPACE; break;
+    case GLFW_KEY_DELETE: twKey = TW_KEY_DELETE; break;
+    case GLFW_KEY_UP: twKey = TW_KEY_UP; break;
+    case GLFW_KEY_DOWN: twKey = TW_KEY_DOWN; break;
+    case GLFW_KEY_RIGHT: twKey = TW_KEY_RIGHT; break;
+    case GLFW_KEY_LEFT: twKey = TW_KEY_LEFT; break;
+    case GLFW_KEY_INSERT: twKey = TW_KEY_INSERT; break;
+    case GLFW_KEY_HOME: twKey = TW_KEY_HOME; break;
+    case GLFW_KEY_END: twKey = TW_KEY_END; break;
+    case GLFW_KEY_PAGE_UP: twKey = TW_KEY_PAGE_UP; break;
+    case GLFW_KEY_PAGE_DOWN: twKey = TW_KEY_PAGE_DOWN; break;
+    case GLFW_KEY_F1: twKey = TW_KEY_F1; break;
+    case GLFW_KEY_F2: twKey = TW_KEY_F2; break;
+    case GLFW_KEY_F3: twKey = TW_KEY_F3; break;
+    case GLFW_KEY_F4: twKey = TW_KEY_F4; break;
+    case GLFW_KEY_F5: twKey = TW_KEY_F5; break;
+    case GLFW_KEY_F6: twKey = TW_KEY_F6; break;
+    case GLFW_KEY_F7: twKey = TW_KEY_F7; break;
+    case GLFW_KEY_F8: twKey = TW_KEY_F8; break;
+    case GLFW_KEY_F9: twKey = TW_KEY_F9; break;
+    case GLFW_KEY_F10: twKey = TW_KEY_F10; break;
+    case GLFW_KEY_F11: twKey = TW_KEY_F11; break;
+    case GLFW_KEY_F12: twKey = TW_KEY_F12; break;
+    case GLFW_KEY_F13: twKey = TW_KEY_F13; break;
+    case GLFW_KEY_F14: twKey = TW_KEY_F14; break;
+    case GLFW_KEY_F15: twKey = TW_KEY_F15; break;
+    }
+    if (twKey == 0 && ctrl && key < 128)
+    {
+      twKey = key;
+    }
+    if (twKey != 0)
+    {
+      if (TwKeyPressed(twKey, twMod)) return;
+    }
+  }
+}
+
+static void charCallback(GLFWwindow* window, unsigned int key)
+{
+  if (TwKeyPressed(key, 0)) return;
+}
+
+static void mousebuttonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+  if (TwEventMouseButtonGLFW(button, action)) return;
+}
+
+static void mousePosCallback(GLFWwindow* window, double xpos, double ypos)
+{
+  if (TwEventMousePosGLFW((int)xpos, (int)ypos)) return;
+}
+
+static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  static double pos = 0;
+  pos += yoffset;
+  if (TwEventMouseWheelGLFW((int)pos)) return;
+}
+
+static void resizeCallback(GLFWwindow* _window, int _width, int _height)
+{
+  if (_height == 0) _height = 1;
+    float aspect = (float)_width / (float)_height;
+    float near = 1.0f, far = 100.0f;
+    float fov = 45.0f;
+    float top = tan(fov * M_PI / 360.0f) * near;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    glViewport(0, 0, _width, _height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(left, right, bottom, top, near, far);
+
+  // Notify AntTweakBar of the window size
+  TwWindowSize(_width, _height);
+}
 
 
 // Light structure: embeds light parameters
@@ -519,82 +617,6 @@ void Scene::DrawSubdivHaloZ(float x, float y, float z, float radius, int subdiv)
 }
 
 
-// Callback function called by GLFW when a mouse button is clicked
-void GLFWCALL OnMouseButton(int glfwButton, int glfwAction)
-{
-    if( !TwEventMouseButtonGLFW(glfwButton, glfwAction) )   // Send event to AntTweakBar
-    {
-        // Event has not been handled by AntTweakBar
-        // Do something if needed.
-    }
-}
-
-
-// Callback function called by GLFW when mouse has moved
-void GLFWCALL OnMousePos(int mouseX, int mouseY)
-{
-    if( !TwEventMousePosGLFW(mouseX, mouseY) )  // Send event to AntTweakBar
-    {
-        // Event has not been handled by AntTweakBar
-        // Do something if needed.
-    }
-}
-
-
-// Callback function called by GLFW on mouse wheel event
-void GLFWCALL OnMouseWheel(int pos)
-{
-    if( !TwEventMouseWheelGLFW(pos) )   // Send event to AntTweakBar
-    {
-        // Event has not been handled by AntTweakBar
-        // Do something if needed.
-    }
-}
-
-
-// Callback function called by GLFW on key event
-void GLFWCALL OnKey(int glfwKey, int glfwAction)
-{
-    if( !TwEventKeyGLFW(glfwKey, glfwAction) )  // Send event to AntTweakBar
-    {
-        if( glfwKey==GLFW_KEY_ESC && glfwAction==GLFW_PRESS ) // Want to quit?
-            glfwCloseWindow();
-        else
-        {
-            // Event has not been handled
-            // Do something if needed.
-        }
-    }
-}
-
-
-// Callback function called by GLFW on char event
-void GLFWCALL OnChar(int glfwChar, int glfwAction)
-{
-    if( !TwEventCharGLFW(glfwChar, glfwAction) )    // Send event to AntTweakBar
-    {
-        // Event has not been handled by AntTweakBar
-        // Do something if needed.
-    }
-}
-
-
-// Callback function called by GLFW when window size changes
-void GLFWCALL OnWindowSize(int width, int height)
-{
-    // Set OpenGL viewport and camera
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(40, (double)width/height, 1, 10);
-    gluLookAt(-0.3,1,3.5, -0.3,0,0, 0,1,0);
-    glTranslated(0, -0.3, 0);
-    
-    // Send the new window size to AntTweakBar
-    TwWindowSize(width, height);
-}
-
-
 // Callback function called when the 'Subdiv' variable value of the main tweak bar has changed.
 void TW_CALL SetSubdivCB(const void *value, void *clientData)
 {
@@ -615,39 +637,47 @@ void TW_CALL GetSubdivCB(void *value, void *clientData)
 // Main function
 int main() 
 {
-    // Initialize GLFW  
-    if( !glfwInit() )
-    {
-        // A fatal error occurred
-        std::cerr << "GLFW initialization failed" << std::endl;
+    GLFWwindow* window; // GLFW3 window
+    TwBar *bar;         // Pointer to a tweak bar  
+    // Intialize GLFW   
+    if (!glfwInit()) {
+        fprintf(stderr, "GLFW initialization failed\n");
         return 1;
     }
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
+
     // Create a window
-    GLFWvidmode mode;
-    glfwGetDesktopMode(&mode);
-    if( !glfwOpenWindow(800, 600, mode.RedBits, mode.GreenBits, mode.BlueBits, 0, 16, 0, GLFW_WINDOW /* or GLFW_FULLSCREEN */) )
+    char *title = "AntTweakBar example: TwAdvanced1";
+    window = glfwCreateWindow(800, 600, title, NULL, NULL);
+    if (!window)
     {
-        // A fatal error occurred   
-        std::cerr << "Cannot open GLFW window" << std::endl;
+        fprintf(stderr, "Cannot open GLFW window\n");
         glfwTerminate();
         return 1;
     }
+    glfwSetWindowTitle(window, title);
+    glfwMakeContextCurrent(window);
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        return -1;
+    }
+    // glfwSetWindowTitle(window, "AntTweakBar simple example using GLFW3");
+    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+
     glfwSwapInterval(0);
-    glfwEnable(GLFW_MOUSE_CURSOR);
-    glfwEnable(GLFW_KEY_REPEAT);
-    const char title[] = "AntTweakBar example: TwAdvanced1";
-    glfwSetWindowTitle(title);
-    // Set GLFW event callbacks
-    glfwSetWindowSizeCallback(OnWindowSize);
-    glfwSetMouseButtonCallback(OnMouseButton);
-    glfwSetMousePosCallback(OnMousePos);
-    glfwSetMouseWheelCallback(OnMouseWheel);
-    glfwSetKeyCallback(OnKey);
-    glfwSetCharCallback(OnChar);
 
     // Initialize AntTweakBar
-    TwInit(TW_OPENGL, NULL);
+    // Initialize AntTweakBar
+    if (!TwInit(TW_OPENGL_CORE, NULL)) {
+        const char* err = TwGetLastError();
+        fprintf(stderr, "TwInit failed: %s\n", err ? err : "Unknown error");
+        fflush(stderr);
+        return 1;
+    }
     // Change the font size, and add a global message to the Help bar.
     TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
 
@@ -686,12 +716,18 @@ int main()
     TwAddVarRO(mainBar, "RotYAngle", TW_TYPE_DOUBLE, &scene.RotYAngle, 
                " group='Scene' label='Rot angle (degree)' precision=0 help='Animated rotation angle' ");
 
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetCharCallback(window, charCallback);
+    glfwSetMouseButtonCallback(window, mousebuttonCallback);
+    glfwSetCursorPosCallback(window, mousePosCallback);
+    glfwSetScrollCallback(window, mouseScrollCallback);
+    glfwSetWindowSizeCallback(window, resizeCallback);
+
     // Initialize time
     double time = glfwGetTime(), dt = 0;            // Current time and elapsed time
     double frameDTime = 0, frameCount = 0, fps = 0; // Framerate
 
-    // Main loop (repeated while window is not closed)
-    while( glfwGetWindowParam(GLFW_OPENED) )
+    while (!glfwWindowShouldClose(window))
     {
         // Get elapsed time
         dt = glfwGetTime() - time;
@@ -710,11 +746,11 @@ int main()
         // Draw scene
         scene.Draw();
 
-        // Draw tweak bars
+        // Draw tweak bar only
         TwDraw();
 
-        // Present frame buffer
-        glfwSwapBuffers();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
 
         // Estimate framerate
         frameCount++;

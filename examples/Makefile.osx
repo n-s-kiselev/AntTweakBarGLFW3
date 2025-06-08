@@ -27,28 +27,23 @@ SRC_FILES	= TwSimpleGLUT.c TwSimpleSDL.c TwSimpleGLFW.c TwAdvanced1.cpp TwString
 
 all: Makefile
 	@echo "===== Build TwSimpleGLUT ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwSimpleGLUT
+	$(CPP) $(CXXFLAGS) $(INCPATH) TwSimpleGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwSimpleGLUT
 
 	@echo "===== Build TwDualGLUT ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwDualGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwDualGLUT
+	$(CPP) $(CXXFLAGS) $(INCPATH) TwDualGLUT.c $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwDualGLUT
 
 	@echo "===== Build TwString ===="
 	$(CPP) $(CPPFLAGS) $(INCPATH) TwString.cpp $(LFLAGS) $(LIBS) -framework GLUT -o $(OUT_DIR)/TwString.out
 	@echo $(EXP_PATH) > $(OUT_DIR)/TwString && chmod +x $(OUT_DIR)/TwString
 
 	@echo "===== Build TwSimpleGLFW3 ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW3.c $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwSimpleGLFW3
+	$(CPP) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW3.c $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwSimpleGLFW3
 
 	@echo "===== Build TwSimpleGLFW ===="
-	$(CXX) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW.c $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwSimpleGLFW
+	$(CPP) $(CXXFLAGS) $(INCPATH) TwSimpleGLFW.c $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwSimpleGLFW
 
-
-# Optional builds:
-#	@echo "===== Build TwSimpleSDL ===="
-#	$(CPP) $(CPPFLAGS) $(INCPATH) TwSimpleSDL.c $(LFLAGS) $(LIBS) -framework SDL -o $(OUT_DIR)/TwSimpleSDL.out
-
-#	@echo "===== Build TwAdvanced1 ===="
-#	$(CPP) $(CPPFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwAdvanced1.out
+	@echo "===== Build TwAdvanced1 ===="
+	$(CPP) $(CPPFLAGS) $(INCPATH) TwAdvanced1.cpp $(LFLAGS) $(LIBS) -lglfw -o $(OUT_DIR)/TwAdvanced1
 
 clean:
 	@echo "===== Clean ====="
