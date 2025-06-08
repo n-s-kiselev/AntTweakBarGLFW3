@@ -1,12 +1,10 @@
-####### Compiler, tools and options
-
 #---- LINUX
+# sudo apt-get install freeglut3-dev sdl2 glfw3
 SO_EXT		= .so
 SO_VERSION	= 1
 AR_EXT		= .a
-
 #---- Release
-CXXCFG   	= -O3
+CPPCFG   	= -O3
 LFLAGS		= 
 OUT_DIR		= ../lib
 #---- Debug
@@ -14,16 +12,14 @@ OUT_DIR		= ../lib
 #LFLAGS		= 
 #OUT_DIR	= ../lib/debug
 
-
-CXX      	= gcc
-CXXFLAGS 	= $(CXXCFG) -Wall -fPIC -fno-strict-aliasing -D_UNIX -D__PLACEMENT_NEW_INLINE
+CPP			= g++
+CXX			= gcc
+CPPFLAGS 	= $(CPPCFG) -Wall -fPIC -fno-strict-aliasing -D_UNIX -D__PLACEMENT_NEW_INLINE
+CXXFLAGS	= $(CPPCFG) -Wall -fPIC -D_UNIX
 INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include
-LINK     	= gcc
 #LIBS     	= -L/usr/X11R6/lib -L. -lglfw -lGL -lGLU -lX11 -lXxf86vm -lXext -lpthread -lm
 #LIBS     	= -L/usr/X11R6/lib -lGL -lX11 -lXxf86vm -lXext -lpthread -lm
-LIBS 		=
 AR       	= ar cqs
-RANLIB   	=
 TAR      	= tar -cf
 GZIP     	= gzip -9f
 COPY     	= cp -f
@@ -35,15 +31,12 @@ DEL_DIR  	= rmdir
 MOVE     	= mv
 NO_STDERR	= 2> /dev/null
 
-
-####### Files
-
-
-# name of the application:
-TARGET 		= AntTweakBar
+# name of the library:
+TARGET 		= AntTweakBarGLWF3
 
 # source files without extension:
 SRC_FILES	= TwColors.cpp TwFonts.cpp TwOpenGL.cpp TwOpenGLCore.cpp TwBar.cpp TwMgr.cpp TwPrecomp.cpp LoadOGL.cpp LoadOGLCore.cpp TwEventGLFW.c TwEventGLUT.c TwEventSDL.c TwEventSDL12.c TwEventSDL13.c TwEventSFML.cpp TwEventX11.c
+INCPATH += -Iglad/include
 
 # build object list from source files
 OBJS_1 		= $(SRC_FILES:.c=.o)
@@ -66,13 +59,13 @@ all: 	Makefile $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo "===== Link $@ ====="
-	$(LINK) $(LFLAGS) -shared -Wl,-soname,lib$(TARGET)$(SO_EXT).$(SO_VERSION) -o $(OUT_DIR)/lib$(TARGET)$(SO_EXT) $(OBJS) $(LIBS)
+	$(CPP) $(LFLAGS) -shared -Wl,-soname,lib$(TARGET)$(SO_EXT).$(SO_VERSION) -o $(OUT_DIR)/lib$(TARGET)$(SO_EXT) $(OBJS) $(LIBS)
 	$(SYMLINK) $(OUT_DIR)/lib$(TARGET)$(SO_EXT) $(OUT_DIR)/lib$(TARGET)$(SO_EXT).$(SO_VERSION)
 	$(AR) $(OUT_DIR)/lib$(TARGET)$(AR_EXT) $(OBJS) $(LIBS)
 
 .cpp.o:
 	@echo "===== Compile $< ====="
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
+	$(CPP) -c $(CPPFLAGS) $(INCPATH) -o $@ $<
 
 .c.o:
 	@echo "===== Compile $< ====="
@@ -82,10 +75,11 @@ clean:
 	@echo "===== Clean ====="
 	-$(DEL_FILE) *.o
 	-$(DEL_FILE) *~ core *.core *.stackdump
+	-find . -name '*.o' -delete
+	-find ../lib -name '*.a' -delete
+	-find ../lib -name '*.dylib' -delete
 
-	
 ####### DEPENDENCIES
-
 TwColors.o:    TwPrecomp.h TwColors.h
 TwFonts.o:     TwPrecomp.h ../include/AntTweakBar.h TwFonts.h TwMgr.h TwColors.h TwGraph.h AntPerfTimer.h
 TwOpenGL.o:    TwPrecomp.h ../include/AntTweakBar.h TwOpenGL.h LoadOGL.h TwGraph.h TwColors.h TwFonts.h TwMgr.h AntPerfTimer.h

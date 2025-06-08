@@ -7,8 +7,8 @@
 //
 //  ---------------------------------------------------------------------------
 
-#include <GL/glew.h>
-#define USE_GLEW
+#define USE_GLAD
+#include <glad/glad.h>
 
 #if defined ANT_OSX
 #   include <OpenGL/gl3.h>
@@ -35,7 +35,7 @@ HMODULE g_OGLCoreModule = NULL;
 #endif
 
 //  ---------------------------------------------------------------------------
-#ifndef USE_GLEW
+#ifndef USE_GLAD
 // GL 1.0
 ANT_GL_CORE_IMPL(glCullFace)
 ANT_GL_CORE_IMPL(glFrontFace)
@@ -316,7 +316,7 @@ ANT_GL_CORE_IMPL(glPrimitiveRestartIndex)
 //ANT_GL_CORE_IMPL(glGetBufferParameteri64v)
 ANT_GL_CORE_IMPL(glFramebufferTexture)
 */
-#endif//ifndef USE_GLEW
+#endif//ifndef USE_GLAD
 
 // GL_ARB_vertex_array_object
 #if defined(ANT_WINDOWS)
@@ -461,19 +461,19 @@ namespace GLCore { PFNGLGetProcAddress _glGetProcAddress = NULL; }
     
     int LoadOpenGLCore()
     {
-        _glGetProcAddress = reinterpret_cast<GLCore::PFNGLGetProcAddress>(glXGetProcAddressARB);
+        // _glGetProcAddress = reinterpret_cast<GLCore::PFNGLGetProcAddress>(glXGetProcAddressARB);
 
-        _glBindVertexArray = reinterpret_cast<PFNglBindVertexArray>(_glGetProcAddress("glBindVertexArray"));
-        _glDeleteVertexArrays = reinterpret_cast<PFNglDeleteVertexArrays>(_glGetProcAddress("glDeleteVertexArrays"));
-        _glGenVertexArrays = reinterpret_cast<PFNglGenVertexArrays>(_glGetProcAddress("glGenVertexArrays"));
-        _glIsVertexArray = reinterpret_cast<PFNglIsVertexArray>(_glGetProcAddress("glIsVertexArray"));
+        // _glBindVertexArray = reinterpret_cast<PFNglBindVertexArray>(_glGetProcAddress("glBindVertexArray"));
+        // _glDeleteVertexArrays = reinterpret_cast<PFNglDeleteVertexArrays>(_glGetProcAddress("glDeleteVertexArrays"));
+        // _glGenVertexArrays = reinterpret_cast<PFNglGenVertexArrays>(_glGetProcAddress("glGenVertexArrays"));
+        // _glIsVertexArray = reinterpret_cast<PFNglIsVertexArray>(_glGetProcAddress("glIsVertexArray"));
 
-        if( _glBindVertexArray==NULL || _glDeleteVertexArrays==NULL || _glGenVertexArrays==NULL || _glIsVertexArray==NULL )
-        {
-            fprintf(stderr, "AntTweakBar: OpenGL Core Profile functions cannot be loaded.\n");
-            return 0;
-        }
-        else
+        // if( _glBindVertexArray==NULL || _glDeleteVertexArrays==NULL || _glGenVertexArrays==NULL || _glIsVertexArray==NULL )
+        // {
+        //     fprintf(stderr, "AntTweakBar: OpenGL Core Profile functions cannot be loaded.\n");
+        //     return 0;
+        // }
+        // else
             return 1;
     }
     

@@ -1,22 +1,24 @@
-####### Compiler, tools and options brew install libtool make sdl2 glad glfw3
-
+#---- MacOSX
+# brew install sdl2 glfw3
 SO_EXT		= .dylib
 AR_EXT		= .a
 
 #---- Release
+CPPCFG   	= -O3
+LFLAGS		= 
 OUT_DIR		= ../lib
 #---- Debug
 #CPPCFG   	= -g -D_DEBUG
 #LFLAGS		= 
 #OUT_DIR	= ../lib/debug
 
-#BASE		= /Developer/SDKs/MacOSX10.5.sdk/System/Library/Frameworks
-CPP      	= g++
+CPP			= g++
 CXX			= gcc
-CPPFLAGS 	= -O3 -arch x86_64 -Wall -fPIC -fno-strict-aliasing -D_MACOSX -ObjC++  -D__PLACEMENT_NEW_INLINE
-CXXFLAGS	= -O3 -arch x86_64 -Wall -fPIC -D_MACOSX
+CPPFLAGS 	= $(CPPCFG) -arch x86_64 -Wall -fPIC -fno-strict-aliasing -D_MACOSX -ObjC++  -D__PLACEMENT_NEW_INLINE
+CXXFLAGS	= $(CPPCFG) -arch x86_64 -Wall -fPIC -D_MACOSX
 INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include
 LIBS 		= -framework OpenGL -framework GLUT -framework AppKit
+
 AR       	= ar cqs
 TAR      	= tar -cf
 GZIP     	= gzip -9f
@@ -29,16 +31,11 @@ DEL_DIR  	= rmdir
 MOVE     	= mv
 NO_STDERR	= 2> /dev/null
 
-
-####### Files
-
-
-# name of the application:
+# name of the library:
 TARGET 	    = AntTweakBarGLFW3
 
 # source files without extension:
 SRC_FILES	= TwColors.cpp TwFonts.cpp TwOpenGL.cpp TwOpenGLCore.cpp TwBar.cpp TwMgr.cpp LoadOGL.cpp LoadOGLCore.cpp TwEventGLFW.c TwEventGLUT.c TwEventSDL.c TwEventSDL12.c TwEventSDL13.c TwEventSFML.cpp
-SRC_FILES += glad/src/glad.c
 INCPATH += -Iglad/include
 
 # build object list from source files
@@ -65,13 +62,14 @@ $(TARGET): $(OBJS)
 	$(CPP) $(LFLAGS) -dynamiclib -Wl,-undefined -Wl,dynamic_lookup  -o $(OUT_DIR)/lib$(TARGET)$(SO_EXT) $(OBJS) $(LIBS)
 	$(AR) $(OUT_DIR)/lib$(TARGET)$(AR_EXT) $(OBJS)
 
+
 .cpp.o:
 	@echo "===== Compile $< ====="
 	$(CPP) -c $(CPPFLAGS) $(INCPATH) -o $@ $<
 
 .c.o:
 	@echo "===== Compile $< ====="
-	$(CXX) -c $(CFLAGS) $(INCPATH) -o $@ $<
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
 
 clean:
 	@echo "===== Clean ====="
