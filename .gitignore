@@ -6,6 +6,17 @@
 *.user
 *.asp
 *.pch
+*.back
+*.back0
+*.back1
+*.back2
+*.back3
+*.back4
+*.back5
+*.back6
+*.back7
+*.back8
+*.back9
 .vscode/
 /src/debug32
 /src/debug64

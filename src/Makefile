@@ -6,8 +6,8 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
     SO_EXT     = .so
     SO_VERSION = 1
-    CPPFLAGS  += -D_UNIX -fPIC
-    CXXFLAGS  += -D_UNIX -fPIC
+    CPPFLAGS  += -D_UNIX
+    CXXFLAGS  += -D_UNIX
     LFLAGS     = -shared -Wl,-soname,lib$(TARGET)$(SO_EXT).$(SO_VERSION)
     LIBS      += -lGL -lX11 -lXxf86vm -lXext -lpthread -lm
     OUT_DIR    = ../lib
@@ -29,9 +29,9 @@ DEL_FILE  = rm -f
 SYMLINK   = ln -sf
 
 # Build configuration
-CPPCFG    = -O3
-CPPFLAGS += $(CPPCFG) -Wall -fno-strict-aliasing -D__PLACEMENT_NEW_INLINE
-CCFLAGS += $(CPPCFG) -Wall
+CPPCFG    = -O3 -fno-strict-aliasing -Wall -fPIC
+CPPFLAGS += $(CPPCFG) -D__PLACEMENT_NEW_INLINE
+CCFLAGS  += $(CPPCFG)
 INCPATH   = -I../include -Iglad/include -I/usr/local/include -I/usr/X11R6/include -I/usr/include
 
 TARGET    = AntTweakBarGLFW3
