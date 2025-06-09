@@ -6,6 +6,7 @@
 *.user
 *.asp
 *.pch
+*.osx
 *.back
 *.back0
 *.back1
