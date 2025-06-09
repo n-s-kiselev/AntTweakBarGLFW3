@@ -154,7 +154,7 @@ static void resizeCallback(GLFWwindow* _window, int _width, int _height)
     float aspect = (float)_width / (float)_height;
     float near = 1.0f, far = 100.0f;
     float fov = 45.0f;
-    float top = tan(fov * M_PI / 360.0f) * near;
+    float top = tan(fov * 0.01745329251f) * near;
     float bottom = -top;
     float right = top * aspect;
     float left = -right;

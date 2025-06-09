@@ -17,7 +17,7 @@
 
 .PHONY: all clean rebuild
 
-PROJECTS = TwSimpleGLUT TwDualGLUT TwSimpleGLFW3 TwAdvanced1 TwString
+PROJECTS = TwSimpleGLUT TwDualGLUT TwSimpleGLFW3 TwSimpleGLFW TwAdvanced1 TwString
 OUT_DIR = bin64
 STATIC_LIB = ../lib/libAntTweakBarGLFW3.a
 SRC_GLAD = glad/src/glad.c
@@ -69,7 +69,7 @@ $(OUT_DIR):
 glad.o: $(SRC_GLAD)
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-# --- Build rules for examples ---
+# --- Build rules ---
 $(OUT_DIR)/TwSimpleGLUT$(EXT): TwSimpleGLUT.c glad.o | $(OUT_DIR)
 	@echo "=== Building TwSimpleGLUT ==="
 	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
@@ -77,6 +77,10 @@ $(OUT_DIR)/TwSimpleGLUT$(EXT): TwSimpleGLUT.c glad.o | $(OUT_DIR)
 $(OUT_DIR)/TwDualGLUT$(EXT): TwDualGLUT.c glad.o | $(OUT_DIR)
 	@echo "=== Building TwDualGLUT ==="
 	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
+
+$(OUT_DIR)/TwSimpleGLFW$(EXT): TwSimpleGLFW.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwSimpleGLFW ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
 
 $(OUT_DIR)/TwSimpleGLFW3$(EXT): TwSimpleGLFW3.c glad.o | $(OUT_DIR)
 	@echo "=== Building TwSimpleGLFW3 ==="

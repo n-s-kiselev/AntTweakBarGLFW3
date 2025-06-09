@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -100,17 +101,24 @@ static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffs
   if (TwEventMouseWheelGLFW((int)pos)) return;
 }
 
-static void resizeCallback(GLFWwindow* window, int width, int height)
+static void resizeCallback(GLFWwindow* _window, int _width, int _height)
 {
-    // Set OpenGL viewport and camera
-    glViewport(0, 0, width, height);
-    // glMatrixMode(GL_PROJECTION);
-    // glLoadIdentity();
-    // gluPerspective(40, (double)width/height, 1, 10);
-    // gluLookAt(-1,0,3, 0,0,0, 0,1,0);    
-    
-    // Send the new window size to AntTweakBar
-    TwWindowSize(width, height);
+  if (_height == 0) _height = 1;
+    float aspect = (float)_width / (float)_height;
+    float near = 1.0f, far = 100.0f;
+    float fov = 45.0f;
+    float top = tan(fov * 0.01745329251f) * near;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    glViewport(0, 0, _width, _height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(left, right, bottom, top, near, far);
+
+  // Notify AntTweakBar of the window size
+  TwWindowSize(_width, _height);
 }
 
 
