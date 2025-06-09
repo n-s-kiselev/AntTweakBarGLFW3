@@ -34,107 +34,16 @@
 #   define _snprintf snprintf
 #endif
 
-const float FLOAT_2PI = 6.283185307f; // 2*PI
+float g_cameraPosX = 0.0f;
+float g_cameraPosY = 0.0f;
+float g_cameraPosZ = 0.0f;
 
-static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-  if (action == GLFW_PRESS || action == GLFW_REPEAT)
-  {
-    int twMod = 0;
-    bool ctrl;
-    if (mods & GLFW_MOD_SHIFT) twMod |= TW_KMOD_SHIFT;
-    if ((ctrl = (mods & GLFW_MOD_CONTROL))) twMod |= TW_KMOD_CTRL;
-    if (mods & GLFW_MOD_ALT) twMod |= TW_KMOD_ALT;
+bool g_cameraDragging = false;
 
-    int twKey = 0;
-    switch (key)
-    {
-    case GLFW_KEY_BACKSPACE: twKey = TW_KEY_BACKSPACE; break;
-    case GLFW_KEY_TAB: twKey = TW_KEY_TAB; break;
-    //case GLFW_KEY_???: twKey = TW_KEY_CLEAR; break;
-    case GLFW_KEY_ENTER: twKey = TW_KEY_RETURN; break;
-    case GLFW_KEY_PAUSE: twKey = TW_KEY_PAUSE; break;
-    case GLFW_KEY_ESCAPE: twKey = TW_KEY_ESCAPE; break;
-    case GLFW_KEY_SPACE: twKey = TW_KEY_SPACE; break;
-    case GLFW_KEY_DELETE: twKey = TW_KEY_DELETE; break;
-    case GLFW_KEY_UP: twKey = TW_KEY_UP; break;
-    case GLFW_KEY_DOWN: twKey = TW_KEY_DOWN; break;
-    case GLFW_KEY_RIGHT: twKey = TW_KEY_RIGHT; break;
-    case GLFW_KEY_LEFT: twKey = TW_KEY_LEFT; break;
-    case GLFW_KEY_INSERT: twKey = TW_KEY_INSERT; break;
-    case GLFW_KEY_HOME: twKey = TW_KEY_HOME; break;
-    case GLFW_KEY_END: twKey = TW_KEY_END; break;
-    case GLFW_KEY_PAGE_UP: twKey = TW_KEY_PAGE_UP; break;
-    case GLFW_KEY_PAGE_DOWN: twKey = TW_KEY_PAGE_DOWN; break;
-    case GLFW_KEY_F1: twKey = TW_KEY_F1; break;
-    case GLFW_KEY_F2: twKey = TW_KEY_F2; break;
-    case GLFW_KEY_F3: twKey = TW_KEY_F3; break;
-    case GLFW_KEY_F4: twKey = TW_KEY_F4; break;
-    case GLFW_KEY_F5: twKey = TW_KEY_F5; break;
-    case GLFW_KEY_F6: twKey = TW_KEY_F6; break;
-    case GLFW_KEY_F7: twKey = TW_KEY_F7; break;
-    case GLFW_KEY_F8: twKey = TW_KEY_F8; break;
-    case GLFW_KEY_F9: twKey = TW_KEY_F9; break;
-    case GLFW_KEY_F10: twKey = TW_KEY_F10; break;
-    case GLFW_KEY_F11: twKey = TW_KEY_F11; break;
-    case GLFW_KEY_F12: twKey = TW_KEY_F12; break;
-    case GLFW_KEY_F13: twKey = TW_KEY_F13; break;
-    case GLFW_KEY_F14: twKey = TW_KEY_F14; break;
-    case GLFW_KEY_F15: twKey = TW_KEY_F15; break;
-    }
-    if (twKey == 0 && ctrl && key < 128)
-    {
-      twKey = key;
-    }
-    if (twKey != 0)
-    {
-      if (TwKeyPressed(twKey, twMod)) return;
-    }
-  }
-}
+double g_lastMouseX = 0.0;
+double g_lastMouseY = 0.0;
 
-static void charCallback(GLFWwindow* window, unsigned int key)
-{
-  if (TwKeyPressed(key, 0)) return;
-}
-
-static void mousebuttonCallback(GLFWwindow* window, int button, int action, int mods)
-{
-  if (TwEventMouseButtonGLFW(button, action)) return;
-}
-
-static void mousePosCallback(GLFWwindow* window, double xpos, double ypos)
-{
-  if (TwEventMousePosGLFW((int)xpos, (int)ypos)) return;
-}
-
-static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-{
-  static double pos = 0;
-  pos += yoffset;
-  if (TwEventMouseWheelGLFW((int)pos)) return;
-}
-
-static void resizeCallback(GLFWwindow* _window, int _width, int _height)
-{
-  if (_height == 0) _height = 1;
-    float aspect = (float)_width / (float)_height;
-    float near = 1.0f, far = 100.0f;
-    float fov = 45.0f;
-    float top = tan(fov * M_PI / 360.0f) * near;
-    float bottom = -top;
-    float right = top * aspect;
-    float left = -right;
-
-    glViewport(0, 0, _width, _height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glFrustum(left, right, bottom, top, near, far);
-
-  // Notify AntTweakBar of the window size
-  TwWindowSize(_width, _height);
-}
-
+const char* title = "AntTweakBar example: TwAdvanced1";
 
 // Light structure: embeds light parameters
 struct Light
@@ -248,8 +157,8 @@ void Scene::Init(bool changeLights)
         for(int i=0; i<maxLights; ++i)
         {
             lights[i].Dist0     = 0.5f*(float)rand()/RAND_MAX + 0.55f;
-            lights[i].Angle0    = FLOAT_2PI*((float)rand()/RAND_MAX);
-            lights[i].Height0   = FLOAT_2PI*(float)rand()/RAND_MAX;
+            lights[i].Angle0    = 2*M_PI*((float)rand()/RAND_MAX);
+            lights[i].Height0   = 2*M_PI*(float)rand()/RAND_MAX;
             lights[i].Speed0    = 4.0f*(float)rand()/RAND_MAX - 2.0f;
             lights[i].Animation = (Light::AnimMode)(Light::ANIM_BOUNCE + (rand()%3));
             lights[i].Radius    = (float)rand()/RAND_MAX+0.05f;
@@ -303,6 +212,151 @@ void Scene::Init(bool changeLights)
     glEndList();
 }
 
+
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  if (action == GLFW_PRESS || action == GLFW_REPEAT)
+  {
+    int twMod = 0;
+    bool ctrl;
+    if (mods & GLFW_MOD_SHIFT) twMod |= TW_KMOD_SHIFT;
+    if ((ctrl = (mods & GLFW_MOD_CONTROL))) twMod |= TW_KMOD_CTRL;
+    if (mods & GLFW_MOD_ALT) twMod |= TW_KMOD_ALT;
+
+    int twKey = 0;
+    switch (key)
+    {
+    case GLFW_KEY_BACKSPACE: twKey = TW_KEY_BACKSPACE; break;
+    case GLFW_KEY_TAB: twKey = TW_KEY_TAB; break;
+    //case GLFW_KEY_???: twKey = TW_KEY_CLEAR; break;
+    case GLFW_KEY_ENTER: twKey = TW_KEY_RETURN; break;
+    case GLFW_KEY_PAUSE: twKey = TW_KEY_PAUSE; break;
+    case GLFW_KEY_ESCAPE: twKey = TW_KEY_ESCAPE; break;
+    case GLFW_KEY_SPACE: twKey = TW_KEY_SPACE; break;
+    case GLFW_KEY_DELETE: twKey = TW_KEY_DELETE; break;
+    case GLFW_KEY_UP: twKey = TW_KEY_UP; break;
+    case GLFW_KEY_DOWN: twKey = TW_KEY_DOWN; break;
+    case GLFW_KEY_RIGHT: twKey = TW_KEY_RIGHT; break;
+    case GLFW_KEY_LEFT: twKey = TW_KEY_LEFT; break;
+    case GLFW_KEY_INSERT: twKey = TW_KEY_INSERT; break;
+    case GLFW_KEY_HOME: twKey = TW_KEY_HOME; break;
+    case GLFW_KEY_END: twKey = TW_KEY_END; break;
+    case GLFW_KEY_PAGE_UP: twKey = TW_KEY_PAGE_UP; break;
+    case GLFW_KEY_PAGE_DOWN: twKey = TW_KEY_PAGE_DOWN; break;
+    case GLFW_KEY_F1: twKey = TW_KEY_F1; break;
+    case GLFW_KEY_F2: twKey = TW_KEY_F2; break;
+    case GLFW_KEY_F3: twKey = TW_KEY_F3; break;
+    case GLFW_KEY_F4: twKey = TW_KEY_F4; break;
+    case GLFW_KEY_F5: twKey = TW_KEY_F5; break;
+    case GLFW_KEY_F6: twKey = TW_KEY_F6; break;
+    case GLFW_KEY_F7: twKey = TW_KEY_F7; break;
+    case GLFW_KEY_F8: twKey = TW_KEY_F8; break;
+    case GLFW_KEY_F9: twKey = TW_KEY_F9; break;
+    case GLFW_KEY_F10: twKey = TW_KEY_F10; break;
+    case GLFW_KEY_F11: twKey = TW_KEY_F11; break;
+    case GLFW_KEY_F12: twKey = TW_KEY_F12; break;
+    case GLFW_KEY_F13: twKey = TW_KEY_F13; break;
+    case GLFW_KEY_F14: twKey = TW_KEY_F14; break;
+    case GLFW_KEY_F15: twKey = TW_KEY_F15; break;
+    }
+    if (twKey == 0 && ctrl && key < 128)
+    {
+      twKey = key;
+    }
+    if (twKey != 0)
+    {
+      if (TwKeyPressed(twKey, twMod)) return;
+    }
+  }
+}
+
+static void charCallback(GLFWwindow* window, unsigned int key)
+{
+  if (TwKeyPressed(key, 0)) return;
+}
+
+static void mousebuttonCallback(GLFWwindow* _window, int _button, int _action, int _mods)
+{
+    if (TwEventMouseButtonGLFW(_button, _action)) return;
+
+    if (_button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (_action == GLFW_PRESS) {
+            g_cameraDragging = true;
+            glfwGetCursorPos(_window, &g_lastMouseX, &g_lastMouseY);
+        } else if (_action == GLFW_RELEASE) {
+            g_cameraDragging = false;
+        }
+    }
+
+    if (_button == GLFW_MOUSE_BUTTON_RIGHT) {
+      if (_action == GLFW_PRESS) {
+        g_cameraPosX = 0;
+        g_cameraPosY = 0;
+        g_cameraPosZ = 0; // Reset camera position
+      }
+    }
+}
+
+static void mousePosCallback(GLFWwindow* _window, double _xpos, double _ypos)
+{
+  if (TwEventMousePosGLFW((int)_xpos, (int)_ypos)) return;
+
+  if (g_cameraDragging) {
+      double dx = _xpos - g_lastMouseX;
+      double dy = _ypos - g_lastMouseY;
+
+      int width, height;
+      glfwGetWindowSize(_window, &width, &height);
+      g_cameraPosX += (float)dx / width * 2.0f;  // Scale to screen
+      g_cameraPosY -= (float)dy / height * 2.0f; // Inverted Y
+
+      g_lastMouseX = _xpos;
+      g_lastMouseY = _ypos;
+  }
+}
+
+static void mouseScrollCallback(GLFWwindow* _window, double _xoffset, double _yoffset)
+{
+  static double pos = 0;
+  pos += _yoffset;
+  g_cameraPosZ -= (float)_yoffset * 0.1f; // Zoom sensitivity
+  if (g_cameraPosZ <-50.0f) g_cameraPosZ =-50.00f; // Prevent too close
+  if (g_cameraPosZ > 50.0f) g_cameraPosZ = 50.0f; // Prevent too far
+
+  if (TwEventMouseWheelGLFW((int)pos)) return;
+}
+
+static void resizeCallback(GLFWwindow* _window, int _width, int _height)
+{
+    if (_height == 0) _height = 1;
+    float aspect = (float)_width / (float)_height;
+
+    // Projection matrix setup (equivalent to gluPerspective(40, aspect, 1, 10))
+    float fovY = 40.0f;
+    float near = 1.0f;
+    float far = 10.0f;
+    float top = tan(fovY * M_PI / 360.0f) * near;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    glViewport(0, 0, _width, _height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(left, right, bottom, top, near, far);
+
+  // Notify AntTweakBar of the window size
+  TwWindowSize(_width, _height);
+}
+
+
+
+void TW_CALL ResetCubePosition(void *clientData)
+{
+  g_cameraPosX = 0;
+  g_cameraPosY = 0;
+  g_cameraPosZ = 5.0f; // Reset camera position
+}
 
 // Callback function associated to the 'Change lights' button of the lights tweak bar.
 void TW_CALL ReinitCB(void *clientData)
@@ -411,9 +465,50 @@ void Scene::Update(double time)
 // drawn two times: first reflected, and second normal (unreflected).
 void Scene::Draw() const
 {
-    // Rotate the scene
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+
+    GLdouble eyeX = -0.3, eyeY = 1.5, eyeZ = 3;
+    GLdouble centerX = 0.0, centerY = 0.0, centerZ = 0.0;
+    GLdouble upX = 0.0, upY = 1.0, upZ = 0.0;
+
+    GLdouble f[3] = {
+        centerX - eyeX,
+        centerY - eyeY,
+        centerZ - eyeZ
+    };
+    GLdouble f_len = sqrt(f[0]*f[0] + f[1]*f[1] + f[2]*f[2]);
+    f[0] /= f_len; f[1] /= f_len; f[2] /= f_len;
+
+    GLdouble up[3] = { upX, upY, upZ };
+    GLdouble up_len = sqrt(up[0]*up[0] + up[1]*up[1] + up[2]*up[2]);
+    up[0] /= up_len; up[1] /= up_len; up[2] /= up_len;
+
+    GLdouble s[3] = {
+        f[1]*up[2] - f[2]*up[1],
+        f[2]*up[0] - f[0]*up[2],
+        f[0]*up[1] - f[1]*up[0]
+    };
+    GLdouble s_len = sqrt(s[0]*s[0] + s[1]*s[1] + s[2]*s[2]);
+    s[0] /= s_len; s[1] /= s_len; s[2] /= s_len;
+
+    GLdouble u[3] = {
+        s[1]*f[2] - s[2]*f[1],
+        s[2]*f[0] - s[0]*f[2],
+        s[0]*f[1] - s[1]*f[0]
+    };
+
+    GLdouble m[16] = {
+        s[0],  u[0], -f[0], 0.0,
+        s[1],  u[1], -f[1], 0.0,
+        s[2],  u[2], -f[2], 0.0,
+        0.0,   0.0,   0.0, 1.0
+    };
+    glMultMatrixd(m);
+    glTranslated(-eyeX, -eyeY, -eyeZ);
+    glTranslated(g_cameraPosX, g_cameraPosY, -g_cameraPosZ);
+    
+    // Rotate the scene
     glRotated(RotYAngle, 0, 1, 0);
 
     // Hide/active lights
@@ -525,8 +620,8 @@ void Scene::DrawHalos(bool reflected) const
     if( reflected )
         glScalef(1, -1 ,1);
     float black[4] = {0, 0, 0, 1};
-    float cr = (float)cos(FLOAT_2PI*RotYAngle/360.0f);
-    float sr = (float)sin(FLOAT_2PI*RotYAngle/360.0f);
+    float cr = (float)cos(2*M_PI*RotYAngle/360.0f);
+    float sr = (float)sin(2*M_PI*RotYAngle/360.0f);
     for(int i=0; i<NumLights; ++i)
     {
         if( lights[i].Active )
@@ -582,8 +677,8 @@ void Scene::DrawSubdivCylinderY(float xCenter, float yBottom, float zCenter, flo
             y1 = yBottom + h1*height;
             r0 = radiusBottom + h0*(radiusTop-radiusBottom);
             r1 = radiusBottom + h1*(radiusTop-radiusBottom);
-            a0 = FLOAT_2PI*(float)i/sideSubdiv;
-            a1 = FLOAT_2PI*(float)(i+1)/sideSubdiv;
+            a0 = 2*M_PI*(float)i/sideSubdiv;
+            a1 = 2*M_PI*(float)(i+1)/sideSubdiv;
             cosa0 = (float)cos(a0);
             sina0 = (float)sin(a0);
             cosa1 = (float)cos(a1);
@@ -611,7 +706,7 @@ void Scene::DrawSubdivHaloZ(float x, float y, float z, float radius, int subdiv)
     for( int i=0; i<=subdiv; ++i )
     {
         glColor4f(1, 1, 1, 0);
-        glVertex3f(x+radius*(float)cos(FLOAT_2PI*(float)i/subdiv), x+radius*(float)sin(FLOAT_2PI*(float)i/subdiv), z);
+        glVertex3f(x+radius*(float)cos(2*M_PI*(float)i/subdiv), x+radius*(float)sin(2*M_PI*(float)i/subdiv), z);
     }
     glEnd();
 }
@@ -645,13 +740,12 @@ int main()
         return 1;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
 
     // Create a window
-    char *title = "AntTweakBar example: TwAdvanced1";
     window = glfwCreateWindow(800, 600, title, NULL, NULL);
     if (!window)
     {
@@ -665,14 +759,16 @@ int main()
         fprintf(stderr, "Failed to initialize GLAD\n");
         return -1;
     }
-    // glfwSetWindowTitle(window, "AntTweakBar simple example using GLFW3");
     printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
-
     glfwSwapInterval(0);
 
     // Initialize AntTweakBar
-    // Initialize AntTweakBar
-    if (!TwInit(TW_OPENGL_CORE, NULL)) {
+    int width = 0;
+    int height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    resizeCallback(window, width, height);
+    // if (!TwInit(TW_OPENGL_CORE, NULL)) {
+    if (!TwInit(TW_OPENGL, NULL)) {
         const char* err = TwGetLastError();
         fprintf(stderr, "TwInit failed: %s\n", err ? err : "Unknown error");
         fflush(stderr);
