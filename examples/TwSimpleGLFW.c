@@ -391,7 +391,7 @@ int main()
     DrawModel(wire);
 
     // Draw tweak bars
-    TwDraw();
+    TwDraw(window);
 
     // Swap buffers
     glfwSwapBuffers(window);

@@ -7,7 +7,9 @@
 //
 //  ---------------------------------------------------------------------------
 
-
+// #define GLFW_EXPOSE_NATIVE_X11//NSK
+// #include <GLFW/glfw3.h>//NSK
+// #include <GLFW/glfw3native.h>//NSK
 #include "TwPrecomp.h"
 #include <AntTweakBar.h>
 #include "TwMgr.h"
@@ -2059,8 +2061,11 @@ int ANT_CALL TwWindowExists(int wndID)
 
 //  ---------------------------------------------------------------------------
 
-int ANT_CALL TwDraw()
+// int ANT_CALL TwDraw(void* _window)//NSK
+int ANT_CALL TwDraw(void* _window)
 {
+    // GLFWwindow* window = (GLFWwindow*)_window;//NSK
+    
     PERF( PerfTimer Timer; double DT; )
     //CTwFPU fpu;   // fpu precision only forced in update (do not modif dx draw calls)
 
@@ -2083,10 +2088,12 @@ int ANT_CALL TwDraw()
     #elif defined(ANT_UNIX)
         if( !g_TwMgr->m_CurrentXDisplay)
             g_TwMgr->m_CurrentXDisplay = glXGetCurrentDisplay();
+            // g_TwMgr->m_CurrentXDisplay = glfwGetX11Display();//NSK
         if( !g_TwMgr->m_CurrentXWindow )
             g_TwMgr->m_CurrentXWindow = glXGetCurrentDrawable();
+            // g_TwMgr->m_CurrentXWindow = glfwGetX11Window(window);//NSK
         if( g_TwMgr->m_CurrentXDisplay && !g_TwMgr->m_CursorsCreated ){
-            // g_TwMgr->CreateCursors();
+            // g_TwMgr->CreateCursors();//NSK
         }
     #endif
 

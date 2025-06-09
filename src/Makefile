@@ -9,7 +9,7 @@ ifeq ($(UNAME_S),Linux)
     CPPFLAGS  += -D_UNIX
     CXXFLAGS  += -D_UNIX
     LFLAGS     = -shared -Wl,-soname,lib$(TARGET)$(SO_EXT).$(SO_VERSION)
-    LIBS      += -lGL -lX11 -lXxf86vm -lXext -lpthread -lm
+    LIBS      += -lGL -lglfw -lX11 -lXxf86vm -lXext -lpthread -lm 
     OUT_DIR    = ../lib
 else ifeq ($(UNAME_S),Darwin)
     SO_EXT     = .dylib
