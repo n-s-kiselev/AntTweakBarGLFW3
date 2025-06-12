@@ -10,10 +10,34 @@
 //
 //  ---------------------------------------------------------------------------
 
-
+//NKSB
 #if !defined ANT_LOAD_OGL_CORE_INCLUDED
 #define ANT_LOAD_OGL_CORE_INCLUDED
 
+#ifndef PFNglBindVertexArray
+#define PFNglBindVertexArray PFNGLBINDVERTEXARRAYPROC
+#endif
+
+#ifndef PFNglDeleteVertexArrays
+#define PFNglDeleteVertexArrays PFNGLDELETEVERTEXARRAYSPROC
+#endif
+
+#ifndef PFNglGenVertexArrays
+#define PFNglGenVertexArrays PFNGLGENVERTEXARRAYSPROC
+#endif
+
+#ifndef PFNglIsVertexArray
+#define PFNglIsVertexArray PFNGLISVERTEXARRAYPROC
+#endif
+
+#if defined(_WIN32)
+    #include <windows.h>
+
+    #ifndef PFNwglGetProcAddress
+    typedef PROC (WINAPI *PFNwglGetProcAddress)(LPCSTR);
+    #endif
+#endif
+//NKSE
 
 #define ANT_GL_CORE_DECL_NO_FORWARD(_Ret, _Fct, _Params) \
     extern "C" { typedef _Ret (APIENTRY* PFN##_Fct)_Params; } \
