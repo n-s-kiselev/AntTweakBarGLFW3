@@ -1,18 +1,5 @@
-//  ---------------------------------------------------------------------------
-//
-//  @file       TwSimpleGLFW3.c
-//  @brief      A simple example that uses AntTweakBar with 
-//              OpenGL and the GLFW3 windowing system.
-//
-//              AntTweakBar: http://anttweakbar.sourceforge.net/doc
-//              OpenGL:      http://www.opengl.org
-//              GLFW3:       http://www.glfw.org
-//  
-//  @author     Nikolai Kiselev
-//  @date       2025/06/05
-//
-//  ---------------------------------------------------------------------------
-
+// g++ -std=c++11 MiniExample.cpp glad/src/glad.c -Iglad/include -I/path/to/glm -lglfw -ldl -lGL -o cube
+// gcc -std=c99 MiniExample3.c glad/src/glad.c -Iglad/include -lglfw -framework Cocoa -framework OpenGL -framework IOKit -o cube
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <AntTweakBar.h>
@@ -121,127 +108,234 @@ static void resizeCallback(GLFWwindow* _window, int _width, int _height)
   TwWindowSize(_width, _height);
 }
 
+const char* vertexShaderSource = "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "out vec3 ourColor;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 projection;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
+    "   ourColor = aColor;\n"
+    "}\0";
 
-// Main
-int main() 
-{ 
-  GLFWwindow* window; // GLFW3 window
-  TwBar *bar;         // Pointer to a tweak bar
-  
-  double time = 0, dt;// Current time and enlapsed time
-  double turn = 0;    // Model turn counter
-  double speed = 0.3; // Model rotation speed
-  int wire = 0;       // Draw model in wireframe?
-  float bgColor[] = { 0.1f, 0.2f, 0.4f };         // Background color 
-  unsigned char cubeColor[] = { 255, 0, 0, 128 }; // Model color (32bits RGBA)
+const char* fragmentShaderSource = "#version 330 core\n"
+    "in vec3 ourColor;\n"
+    "out vec4 FragColor;\n"
+    "void main()\n"
+    "{\n"
+    "   FragColor = vec4(ourColor, 1.0);\n"
+    "}\n\0";
 
-  // Intialize GLFW   
-  if (!glfwInit()) {
-      fprintf(stderr, "GLFW initialization failed\n");
-      return 1;
-  }
+float vertices[] = {
+    -0.5f,-0.5f,-0.5f, 1.0f,0.0f,0.0f,
+     0.5f,-0.5f,-0.5f, 0.0f,1.0f,0.0f,
+     0.5f, 0.5f,-0.5f, 0.0f,0.0f,1.0f,
+    -0.5f, 0.5f,-0.5f, 1.0f,1.0f,0.0f,
+    
+    -0.5f,-0.5f, 0.5f, 0.0f,1.0f,1.0f,
+     0.5f,-0.5f, 0.5f, 1.0f,0.0f,1.0f,
+     0.5f, 0.5f, 0.5f, 0.5f,0.5f,0.5f,
+    -0.5f, 0.5f, 0.5f, 1.0f,1.0f,1.0f
+};
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
+unsigned int indices[] = {
+    0,1,2, 2,3,0,
+    4,5,6, 6,7,4,
+    1,5,6, 6,2,1,
+    0,4,7, 7,3,0,
+    3,2,6, 6,7,3,
+    0,1,5, 5,4,0
+};
 
-  window = glfwCreateWindow(640, 480, "AntTweakBar + GLFW3", NULL, NULL);
-  if (!window)
-  {
-      fprintf(stderr, "Cannot open GLFW window\n");
-      glfwTerminate();
-      return 1;
-  }
+float normals [] = {
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            0,0,0,1
+        };
 
-  glfwMakeContextCurrent(window);
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-      fprintf(stderr, "Failed to initialize GLAD\n");
-      return -1;
-  }
-  // glfwSetWindowTitle(window, "AntTweakBar simple example using GLFW3");
-  printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
-
-
-  // Initialize AntTweakBar
-  if (!TwInit(TW_OPENGL_CORE, NULL)) {
-      const char* err = TwGetLastError();
-      fprintf(stderr, "TwInit failed: %s\n", err ? err : "Unknown error");
-      fflush(stderr);
-      return 1;
-  }
-  int width = 0, height = 0;
-  do {
-      glfwGetFramebufferSize(window, &width, &height);
-      glfwPollEvents(); // Ensure GLFW event loop updates window size
-  } while (width == 0 || height == 0); // Wait until we get a real size
-
-  resizeCallback(window, width, height);
-
-
-
-  // Create a tweak bar
-  bar = TwNewBar("TweakBar");
-  TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
-
-  // Add 'speed' to 'bar': it is a modifable (RW) variable of type TW_TYPE_DOUBLE. Its key shortcuts are [s] and [S].
-  TwAddVarRW(bar, "speed", TW_TYPE_DOUBLE, &speed, 
-              " label='Rot speed' min=0 max=2 step=0.01 keyIncr=s keyDecr=S help='Rotation speed (turns/second)' ");
-
-  // Add 'wire' to 'bar': it is a modifable variable of type TW_TYPE_BOOL32 (32 bits boolean). Its key shortcut is [w].
-  TwAddVarRW(bar, "wire", TW_TYPE_BOOL32, &wire, 
-              " label='Wireframe mode' key=w help='Toggle wireframe display mode.' ");
-
-  // Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-  TwAddVarRO(bar, "time", TW_TYPE_DOUBLE, &time, " label='Time' precision=1 help='Time (in seconds).' ");         
-
-  // Add 'bgColor' to 'bar': it is a modifable variable of type TW_TYPE_COLOR3F (3 floats color)
-  TwAddVarRW(bar, "bgColor", TW_TYPE_COLOR3F, &bgColor, " label='Background color' ");
-
-  // Add 'cubeColor' to 'bar': it is a modifable variable of type TW_TYPE_COLOR32 (32 bits color) with alpha
-  TwAddVarRW(bar, "cubeColor", TW_TYPE_COLOR32, &cubeColor, 
-              " label='Cube color' alpha help='Color and transparency of the cube.' ");
-  char* myString = (char*)malloc(512);
-  strcpy(myString, "Hello world");
-  // Register as editable string (CDSTRING with default 512 chars)
-  TwAddVarRW(bar, "Text", TW_TYPE_CDSTRING, &myString, " label='Text to change' ");
-
-
-  glfwSetKeyCallback(window, keyCallback);
-  glfwSetCharCallback(window, charCallback);
-  glfwSetMouseButtonCallback(window, mousebuttonCallback);
-  glfwSetCursorPosCallback(window, mousePosCallback);
-  glfwSetScrollCallback(window, mouseScrollCallback);
-  glfwSetWindowSizeCallback(window, resizeCallback);
-
-
-  // Initialize time
-  time = glfwGetTime();
-
-  while (!glfwWindowShouldClose(window)) {
-      int width, height;
-      glfwGetFramebufferSize(window, &width, &height);
-      glViewport(0, 0, width, height);
-
-      // Just clear the background
-      glClearColor(bgColor[0], bgColor[1], bgColor[2], 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-      // Draw tweak bar only
-      TwDraw();
-
-      glfwSwapBuffers(window);
-      glfwPollEvents();
-  }
-
-
-
-
-
-  // Terminate AntTweakBar and GLFW
-  TwTerminate();
-  glfwTerminate();
-
-  return 0;
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
 }
 
+int main() 
+{
+    GLFWwindow* window; // GLFW3 window
+    TwBar *bar;         // Pointer to a tweak bar
+
+    double time = 0, dt;// Current time and enlapsed time
+    double speed = 0.3; // Model rotation speed
+    double angle = 0.0;
+
+    // Initialize GLFW
+    if (!glfwInit()) {
+        printf("Failed to initialize GLFW\n");
+        return -1;
+    }
+
+    // Configure GLFW for macOS
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+    // Create window
+    window = glfwCreateWindow(800, 600, "AntTweakBar + GLFW3", NULL, NULL);
+    if (!window) {
+        printf("Failed to create GLFW window\n");
+        glfwTerminate();
+        return -1;
+    }
+    
+    glfwMakeContextCurrent(window);
+    // glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // Load OpenGL functions
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        printf("Failed to initialize GLAD\n");
+        return -1;
+    }
+
+    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+
+    // Build and compile shaders
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+    
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+    
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // Set up vertex data and buffers
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    
+    // Color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
+
+    // Initialize AntTweakBar
+    if (!TwInit(TW_OPENGL_CORE, NULL)) {
+        const char* err = TwGetLastError();
+        fprintf(stderr, "TwInit failed: %s\n", err ? err : "Unknown error");
+        fflush(stderr);
+        return 1;
+    }
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    resizeCallback(window, width, height);
+
+    // Create a tweak bar
+    bar = TwNewBar("TweakBar");
+    TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
+
+    // Add 'speed' to 'bar': it is a modifable (RW) variable of type TW_TYPE_DOUBLE. Its key shortcuts are [s] and [S].
+    TwAddVarRW(bar, "speed", TW_TYPE_DOUBLE, &speed, 
+                " label='Rot speed' min=0 max=2 step=0.01 keyIncr=s keyDecr=S help='Rotation speed (turns/second)' ");
+
+
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetCharCallback(window, charCallback);
+    glfwSetMouseButtonCallback(window, mousebuttonCallback);
+    glfwSetCursorPosCallback(window, mousePosCallback);
+    glfwSetScrollCallback(window, mouseScrollCallback);
+    glfwSetWindowSizeCallback(window, resizeCallback);
+
+
+    // Initialize time
+    time = glfwGetTime();
+
+    while (!glfwWindowShouldClose(window)) {
+        // Input
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, 1);
+
+        // Clear screen
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Activate shader
+        glUseProgram(shaderProgram);
+
+        // Create transformations
+        dt = glfwGetTime() - time;
+        if (dt < 0) dt = 0;
+        time += dt;
+        angle += speed * dt;
+        
+        // Model matrix
+        float model[16] = {
+            cos(angle), 0.0f, sin(angle), 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            -sin(angle), 0.0f, cos(angle), 0.0f,
+            0.0f, 0.0f, -3.0f, 1.0f
+        };
+        
+        // Projection matrix
+        float fov = 45.0f;
+        float aspect = 800.0f / 600.0f;
+        float near = 0.1f;
+        float far = 100.0f;
+        float f = 1.0f / tan(fov * 3.14159f / 360.0f);
+        float projection[16] = {
+            f/aspect, 0.0f, 0.0f, 0.0f,
+            0.0f, f, 0.0f, 0.0f,
+            0.0f, 0.0f, (far+near)/(near-far), -1.0f,
+            0.0f, 0.0f, (2.0f*far*near)/(near-far), 0.0f
+        };
+
+        // Set uniforms
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, model);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, normals);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, projection);
+
+        // Render cube
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        // Draw tweak bar only
+        TwDraw();
+        // Swap buffers and poll events
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    TwTerminate();
+    // Cleanup
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glDeleteProgram(shaderProgram);
+
+    glfwTerminate();
+    return 0;
+}
