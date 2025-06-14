@@ -17,8 +17,7 @@
 
 .PHONY: all clean rebuild
 
-PROJECTS =  TwSimpleGLFW 
-# TwSimpleGLUT TwDualGLUT TwSimpleGLFW3 TwAdvanced1 TwString
+PROJECTS =  TwSimpleGLFW TwAdvanced1 TwSimpleGLUT TwDualGLUT TwSimpleGLFW3 TwString
 OUT_DIR = bin64
 STATIC_LIB = ../lib/libAntTweakBarGLFW3.a
 SRC_GLAD = glad/src/glad.c
@@ -71,29 +70,29 @@ glad.o: $(SRC_GLAD)
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 # --- Build rules ---
-# $(OUT_DIR)/TwSimpleGLUT$(EXT): TwSimpleGLUT.c glad.o | $(OUT_DIR)
-# 	@echo "=== Building TwSimpleGLUT ==="
-# 	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
+$(OUT_DIR)/TwSimpleGLUT$(EXT): TwSimpleGLUT.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwSimpleGLUT ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
 
-# $(OUT_DIR)/TwDualGLUT$(EXT): TwDualGLUT.c glad.o | $(OUT_DIR)
-# 	@echo "=== Building TwDualGLUT ==="
-# 	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
+$(OUT_DIR)/TwDualGLUT$(EXT): TwDualGLUT.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwDualGLUT ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
 
 $(OUT_DIR)/TwSimpleGLFW$(EXT): TwSimpleGLFW.c glad.o | $(OUT_DIR)
 	@echo "=== Building TwSimpleGLFW ==="
 	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
 
-# $(OUT_DIR)/TwSimpleGLFW3$(EXT): TwSimpleGLFW3.c glad.o | $(OUT_DIR)
-# 	@echo "=== Building TwSimpleGLFW3 ==="
-# 	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
+$(OUT_DIR)/TwSimpleGLFW3$(EXT): TwSimpleGLFW3.c glad.o | $(OUT_DIR)
+	@echo "=== Building TwSimpleGLFW3 ==="
+	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
 
-# $(OUT_DIR)/TwAdvanced1$(EXT): TwAdvanced1.cpp glad.o | $(OUT_DIR)
-# 	@echo "=== Building TwAdvanced1 ==="
-# 	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
+$(OUT_DIR)/TwAdvanced1$(EXT): TwAdvanced1.cpp glad.o | $(OUT_DIR)
+	@echo "=== Building TwAdvanced1 ==="
+	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLFW) -o $@
 
-# $(OUT_DIR)/TwString$(EXT): TwString.cpp glad.o | $(OUT_DIR)
-# 	@echo "=== Building TwString ==="
-# 	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
+$(OUT_DIR)/TwString$(EXT): TwString.cpp glad.o | $(OUT_DIR)
+	@echo "=== Building TwString ==="
+	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) $(LIB_GLUT) -o $@
 
 clean:
 	@echo "=== Cleaning ==="

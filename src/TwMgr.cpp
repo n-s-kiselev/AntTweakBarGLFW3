@@ -2062,7 +2062,7 @@ int ANT_CALL TwWindowExists(int wndID)
 //  ---------------------------------------------------------------------------
 
 // int ANT_CALL TwDraw(void* _window)//NSK
-int ANT_CALL TwDraw(void* _window)
+int ANT_CALL TwDraw()
 {
     // GLFWwindow* window = (GLFWwindow*)_window;//NSK
     

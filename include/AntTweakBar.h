@@ -204,7 +204,8 @@ typedef enum ETwGraphAPI
 TW_API int      TW_CALL TwInit(TwGraphAPI graphAPI, void *device);
 TW_API int      TW_CALL TwTerminate();
 
-TW_API int      TW_CALL TwDraw(void* window);
+// TW_API int      TW_CALL TwDraw(void* window);//NSK
+TW_API int      TW_CALL TwDraw();
 TW_API int      TW_CALL TwWindowSize(int width, int height);
 
 TW_API int      TW_CALL TwSetCurrentWindow(int windowID); // multi-windows support
