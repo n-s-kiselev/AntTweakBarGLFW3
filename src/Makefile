@@ -1,4 +1,12 @@
 # Cross-platform Makefile for AntTweakBarGLFW3
+# On Linux one may need to install the following packages:
+# sudo apt install libglfw3-dev \
+# libgl1-mesa-dev \
+# libgl1-mesa-glx \
+# libx11-dev \ 
+# freeglut3-dev \
+# libxxf86vm-dev\
+# libxmu-dev
 
 # OS detection
 ifeq ($(OS),Windows_NT)
