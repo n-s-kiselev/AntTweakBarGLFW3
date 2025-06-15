@@ -14,7 +14,7 @@
 //  ---------------------------------------------------------------------------
 
 #include <glad/glad.h>
-#include <GL/glu.h>
+// #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 #include <AntTweakBar.h>
 #include <stdlib.h>
@@ -148,10 +148,10 @@ static void mouseScrollCallback(GLFWwindow* _window, double _xoffset, double _yo
   if (TwEventMouseWheelGLFW((int)pos)) return;
 }
 
-static void resizeCallback(GLFWwindow* _window, int _width, int _height)
+static void framebufferSizeCallback(GLFWwindow* window, int fb_width, int fb_height)
 {
-  if (_height == 0) _height = 1;
-    float aspect = (float)_width / (float)_height;
+    if (fb_height == 0) fb_height = 1;
+    float aspect = (float)fb_width / (float)fb_height;
     float near = 1.0f, far = 100.0f;
     float fov = 45.0f;
     float top = tan(fov * 0.01745329251f) * near;
@@ -159,13 +159,29 @@ static void resizeCallback(GLFWwindow* _window, int _width, int _height)
     float right = top * aspect;
     float left = -right;
 
-    glViewport(0, 0, _width, _height);
+    glViewport(0, 0, fb_width, fb_height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(left, right, bottom, top, near, far);
+}
+
+static void windowSizeCallback(GLFWwindow* window, int width, int height)
+{
+  if (height == 0) height = 1;
+    float aspect = (float)width / (float)height;
+    float near = 1.0f, far = 100.0f;
+    float fov = 45.0f;
+    float top = tan(fov * 0.01745329251f) * near;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(left, right, bottom, top, near, far);
 
-  // Notify AntTweakBar of the window size
-  TwWindowSize(_width, _height);
+    TwWindowSize(width, height);
 }
 
 void TW_CALL ResetCubePosition(void *clientData)
@@ -295,6 +311,8 @@ int main()
       return 1;
   }
 
+  // Disable Retina scaling for now
+  glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);  
   window = glfwCreateWindow(800, 600, "AntTweakBar + GLFW2", NULL, NULL);
   if(!window)
   {
@@ -309,7 +327,6 @@ int main()
       fprintf(stderr, "Failed to initialize GLAD\n");
       return -2;
   }
-  resizeCallback(window, 800, 600);
 
   // Initialize AntTweakBar
   if (!TwInit(TW_OPENGL, NULL)) {
@@ -318,7 +335,13 @@ int main()
       fflush(stderr);
       return -3;
   }
-  TwWindowSize(800, 600);
+  {
+    int width, hight;
+    // glfwGetFramebufferSize(window, &width, &hight);
+    // framebufferSizeCallback(window, width, hight);
+    glfwGetWindowSize(window, &width, &hight); 
+    windowSizeCallback(window, width, hight);
+  }
   TwCopyCDStringToClientFunc(CopyCDStringToClient);
     
   // Create a tweak bar
@@ -359,7 +382,8 @@ int main()
   glfwSetMouseButtonCallback(window, mousebuttonCallback);
   glfwSetCursorPosCallback(window, mousePosCallback);
   glfwSetScrollCallback(window, mouseScrollCallback);
-  glfwSetWindowSizeCallback(window, resizeCallback);
+  glfwSetWindowSizeCallback(window, windowSizeCallback);
+  // glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
   // Initialize time
   time = glfwGetTime();

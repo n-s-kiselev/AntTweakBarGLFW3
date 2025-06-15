@@ -88,10 +88,10 @@ static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffs
   if (TwEventMouseWheelGLFW((int)pos)) return;
 }
 
-static void resizeCallback(GLFWwindow* _window, int _width, int _height)
+static void resizeCallback(GLFWwindow* window, int fb_width, int fb_height)
 {
-  if (_height == 0) _height = 1;
-    float aspect = (float)_width / (float)_height;
+  if (fb_height == 0) fb_height = 1;
+    float aspect = (float)fb_width / (float)fb_height;
     float near = 1.0f, far = 100.0f;
     float fov = 45.0f;
     float top = tan(fov * 0.01745329251f) * near;
@@ -99,13 +99,15 @@ static void resizeCallback(GLFWwindow* _window, int _width, int _height)
     float right = top * aspect;
     float left = -right;
 
-    glViewport(0, 0, _width, _height);
+    glViewport(0, 0, fb_width, fb_height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(left, right, bottom, top, near, far);
 
-  // Notify AntTweakBar of the window size
-  TwWindowSize(_width, _height);
+    // Notify AntTweakBar of the window size
+    int winWidth, winHeight;
+    glfwGetWindowSize(window, &winWidth, &winHeight);
+    TwWindowSize(winWidth, winHeight);
 }
 
 const char* vertexShaderSource = "#version 330 core\n"
@@ -250,9 +252,9 @@ int main()
         fflush(stderr);
         return 1;
     }
-    int width = 0, height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
-    resizeCallback(window, width, height);
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    resizeCallback(window, fbWidth, fbHeight);
 
     // Create a tweak bar
     bar = TwNewBar("TweakBar");
@@ -268,7 +270,8 @@ int main()
     glfwSetMouseButtonCallback(window, mousebuttonCallback);
     glfwSetCursorPosCallback(window, mousePosCallback);
     glfwSetScrollCallback(window, mouseScrollCallback);
-    glfwSetWindowSizeCallback(window, resizeCallback);
+    // glfwSetWindowSizeCallback(window, resizeCallback);
+    glfwSetFramebufferSizeCallback(window, resizeCallback);
 
 
     // Initialize time
@@ -294,9 +297,9 @@ int main()
         
         // Model matrix
         float model[16] = {
-            cos(angle), 0.0f, sin(angle), 0.0f,
+            cosf(angle), 0.0f, sinf(angle), 0.0f,
             0.0f, 1.0f, 0.0f, 0.0f,
-            -sin(angle), 0.0f, cos(angle), 0.0f,
+            -sinf(angle), 0.0f, cosf(angle), 0.0f,
             0.0f, 0.0f, -3.0f, 1.0f
         };
         

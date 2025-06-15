@@ -733,7 +733,6 @@ void TW_CALL GetSubdivCB(void *value, void *clientData)
 int main() 
 {
     GLFWwindow* window; // GLFW3 window
-    TwBar *bar;         // Pointer to a tweak bar  
     // Intialize GLFW   
     if (!glfwInit()) {
         fprintf(stderr, "GLFW initialization failed\n");

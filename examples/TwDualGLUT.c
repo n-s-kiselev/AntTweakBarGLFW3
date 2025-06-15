@@ -30,7 +30,7 @@
     #include "../src/MiniGLUT.h"
 #elif defined(_MACOSX)
     #define GL_SILENCE_DEPRECATION
-    #include <GL/glu.h>
+    // #include <GL/glu.h>
     #include <GLUT/glut.h>
 #else
     #include <GL/glu.h>
