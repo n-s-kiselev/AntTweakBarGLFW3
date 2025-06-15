@@ -27,11 +27,11 @@
 /examples/debug32
 /examples/debug64
 /examples/tmp
-/examples/bin32/*.exe
-/examples/bin32/*.out
+/examples/bin32/*
+/examples/bin32/*
 /examples/bin32/AntTweakBar.dll
-/examples/bin64/*.exe
-/examples/bin64/*.out
+/examples/bin64/*
+/examples/bin64/*
 /examples/bin64/AntTweakBar64.dll
 lib/debug
 lib/*.lib
