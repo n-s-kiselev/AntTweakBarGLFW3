@@ -88,10 +88,10 @@ static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffs
   if (TwEventMouseWheelGLFW((int)pos)) return;
 }
 
-static void resizeCallback(GLFWwindow* window, int fb_width, int fb_height)
+static void windowSizeCallback(GLFWwindow* window, int width, int height)
 {
-  if (fb_height == 0) fb_height = 1;
-    float aspect = (float)fb_width / (float)fb_height;
+  if (height == 0) height = 1;
+    float aspect = (float)width / (float)height;
     float near = 1.0f, far = 100.0f;
     float fov = 45.0f;
     float top = tan(fov * 0.01745329251f) * near;
@@ -99,15 +99,12 @@ static void resizeCallback(GLFWwindow* window, int fb_width, int fb_height)
     float right = top * aspect;
     float left = -right;
 
-    glViewport(0, 0, fb_width, fb_height);
+    glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(left, right, bottom, top, near, far);
 
-    // Notify AntTweakBar of the window size
-    int winWidth, winHeight;
-    glfwGetWindowSize(window, &winWidth, &winHeight);
-    TwWindowSize(winWidth, winHeight);
+    TwWindowSize(width, height);
 }
 
 const char* vertexShaderSource = "#version 330 core\n"
@@ -254,9 +251,13 @@ int main()
         fflush(stderr);
         return 1;
     }
-    int fbWidth, fbHeight;
-    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-    resizeCallback(window, fbWidth, fbHeight);
+    {
+      int width, hight;
+      // glfwGetFramebufferSize(window, &width, &hight);
+      // framebufferSizeCallback(window, width, hight);
+      glfwGetWindowSize(window, &width, &hight); 
+      windowSizeCallback(window, width, hight);
+    }
 
     // Create a tweak bar
     bar = TwNewBar("TweakBar");
@@ -272,8 +273,8 @@ int main()
     glfwSetMouseButtonCallback(window, mousebuttonCallback);
     glfwSetCursorPosCallback(window, mousePosCallback);
     glfwSetScrollCallback(window, mouseScrollCallback);
-    // glfwSetWindowSizeCallback(window, resizeCallback);
-    glfwSetFramebufferSizeCallback(window, resizeCallback);
+    glfwSetWindowSizeCallback(window, windowSizeCallback);
+    // glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 
     // Initialize time
