@@ -38,6 +38,7 @@ ifeq ($(OS),Windows_NT)
         $(GLFW_DIR)/src/monitor.c \
         $(GLFW_DIR)/src/vulkan.c \
         $(GLFW_DIR)/src/window.c \
+        $(GLFW_DIR)/src/platform.c \
         $(GLFW_DIR)/src/wgl_context.c \
         $(GLFW_DIR)/src/win32_init.c \
         $(GLFW_DIR)/src/win32_joystick.c \
@@ -56,37 +57,40 @@ else
             $(GLFW_DIR)/src/monitor.c \
             $(GLFW_DIR)/src/vulkan.c \
             $(GLFW_DIR)/src/window.c \
+            $(GLFW_DIR)/src/platform.c \
+            $(GLFW_DIR)/src/egl_context.c \
+            $(GLFW_DIR)/src/glx_context.c \
             $(GLFW_DIR)/src/x11_init.c \
             $(GLFW_DIR)/src/x11_monitor.c \
             $(GLFW_DIR)/src/x11_window.c \
-            $(GLFW_DIR)/src/glx_context.c \
+            $(GLFW_DIR)/src/xkb_unicode.c \
             $(GLFW_DIR)/src/posix_time.c \
             $(GLFW_DIR)/src/posix_thread.c \
             $(GLFW_DIR)/src/posix_module.c \
             $(GLFW_DIR)/src/posix_poll.c \
             $(GLFW_DIR)/src/osmesa_context.c \
-            $(GLFW_DIR)/src/xkb_unicode.c
+            $(GLFW_DIR)/src/linux_joystick.c
     else ifeq ($(UNAME_S),Darwin)
-    GLFW_SRC = \
-        $(GLFW_DIR)/src/context.c \
-        $(GLFW_DIR)/src/init.c \
-        $(GLFW_DIR)/src/input.c \
-        $(GLFW_DIR)/src/monitor.c \
-        $(GLFW_DIR)/src/vulkan.c \
-        $(GLFW_DIR)/src/window.c \
-        $(GLFW_DIR)/src/platform.c \
-        $(GLFW_DIR)/src/egl_context.c \
-        $(GLFW_DIR)/src/nsgl_context.m \
-        $(GLFW_DIR)/src/cocoa_init.m \
-        $(GLFW_DIR)/src/cocoa_joystick.m \
-        $(GLFW_DIR)/src/cocoa_monitor.m \
-        $(GLFW_DIR)/src/cocoa_window.m \
-        $(GLFW_DIR)/src/cocoa_time.c \
-        $(GLFW_DIR)/src/posix_time.c \
-        $(GLFW_DIR)/src/posix_thread.c \
-        $(GLFW_DIR)/src/posix_module.c \
-        $(GLFW_DIR)/src/posix_poll.c \
-        $(GLFW_DIR)/src/osmesa_context.c
+        GLFW_SRC = \
+            $(GLFW_DIR)/src/context.c \
+            $(GLFW_DIR)/src/init.c \
+            $(GLFW_DIR)/src/input.c \
+            $(GLFW_DIR)/src/monitor.c \
+            $(GLFW_DIR)/src/vulkan.c \
+            $(GLFW_DIR)/src/window.c \
+            $(GLFW_DIR)/src/platform.c \
+            $(GLFW_DIR)/src/egl_context.c \
+            $(GLFW_DIR)/src/nsgl_context.m \
+            $(GLFW_DIR)/src/cocoa_init.m \
+            $(GLFW_DIR)/src/cocoa_joystick.m \
+            $(GLFW_DIR)/src/cocoa_monitor.m \
+            $(GLFW_DIR)/src/cocoa_window.m \
+            $(GLFW_DIR)/src/cocoa_time.c \
+            $(GLFW_DIR)/src/posix_time.c \
+            $(GLFW_DIR)/src/posix_thread.c \
+            $(GLFW_DIR)/src/posix_module.c \
+            $(GLFW_DIR)/src/posix_poll.c \
+            $(GLFW_DIR)/src/osmesa_context.c
     endif
 endif
 
@@ -100,7 +104,7 @@ ifeq ($(OS),Windows_NT)
     EXT = .exe
     CC = gcc
     CXX = g++
-    PLATFORM_FLAG = -D OS_WINDOWS
+    PLATFORM_FLAG = -D OS_WINDOWS -D_GLFW_WIN32
     LIBS_COMMON = -lopengl32 -lgdi32 -lwinmm -lpthread
     LIB_GLUT = -lglut32
 else
@@ -108,7 +112,7 @@ else
         EXT =
         CC = gcc
         CXX = g++
-        PLATFORM_FLAG = -D OS_LINUX
+        PLATFORM_FLAG = -D OS_LINUX -D_GLFW_X11
         LIBS_COMMON = -lGL -lGLU -lX11 -lXext -lXmu -lXrandr -lpthread -lm -ldl
         LIB_GLUT = -lglut
     else ifeq ($(UNAME_S),Darwin)

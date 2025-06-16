@@ -16,7 +16,7 @@ ifeq ($(OS),Windows_NT)
     CPPFLAGS  += -Wall -O2 -D_WIN32 -Wno-cast-function-type -Wno-invalid-offsetof -Wno-int-to-pointer-cast -fpermissive
     CXXFLAGS  += -Wall -O2 -D_WIN32
     LFLAGS     = -shared
-    LIBS      += -lopengl32 -lglfw3 -lgdi32 -luser32 -lkernel32 -lm -ldinput8 -ldxguid
+    LIBS      += -lopengl32 -lgdi32 -luser32 -lkernel32 -lm -ldinput8 -ldxguid
     OUT_DIR    = ../lib
     CLEAN_OUT_DIR := $(subst /,\,$(OUT_DIR))
 else
@@ -27,7 +27,7 @@ else
         CPPFLAGS  += -D_UNIX
         CXXFLAGS  += -D_UNIX
         LFLAGS     = -shared -Wl,-soname,lib$(TARGET)$(SO_EXT).$(SO_VERSION)
-        LIBS      += -lGL -lglfw -lX11 -lXxf86vm -lXext -lpthread -lm 
+        LIBS      += -lGL -lX11 -lXxf86vm -lXext -lpthread -lm 
         OUT_DIR    = ../lib
 	else ifeq ($(UNAME_S),Darwin)
         SO_EXT     = .dylib

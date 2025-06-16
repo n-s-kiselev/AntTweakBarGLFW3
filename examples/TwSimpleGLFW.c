@@ -290,6 +290,12 @@ void DrawModel(int _wireframe)
   }
 }
 
+void error_callback(int error, const char* description)
+{
+    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+    fflush(stderr);
+}
+
 
 // Main
 int main() 
@@ -303,6 +309,10 @@ int main()
   int wire = 0;       // Draw model in wireframe?
   float bgColor[] = { 73.0/255, 25.0/255, 100.0/255 };         // Background color 
   unsigned char cubeColor[] = { 255, 170, 0, 250 }; // Model color (32bits RGBA)
+
+
+  // Set error callback
+  glfwSetErrorCallback(error_callback);
 
   // Intialize GLFW   
   if(!glfwInit())
