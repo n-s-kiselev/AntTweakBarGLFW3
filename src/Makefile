@@ -13,8 +13,8 @@ ifeq ($(OS),Windows_NT)
     SHELL := cmd.exe
     .SHELLFLAGS := /C
     SO_EXT     = .dll
-    CPPFLAGS  += -Wall -O2 -D_WIN32 -Wno-cast-function-type -Wno-invalid-offsetof -Wno-int-to-pointer-cast -fpermissive
-    CXXFLAGS  += -Wall -O2 -D_WIN32
+    CPPFLAGS  += -Wall -O2 -D_WIN32 -DTW_EXPORTS -Wno-cast-function-type -Wno-invalid-offsetof -Wno-int-to-pointer-cast -fpermissive
+    CCFLAGS  += -Wall -O2 -D_WIN32 -DTW_EXPORTS
     LFLAGS     = -shared
     LIBS      += -lopengl32 -lgdi32 -luser32 -lkernel32 -lm -ldinput8 -ldxguid
     OUT_DIR    = ../lib
@@ -25,14 +25,14 @@ else
         SO_EXT     = .so
         SO_VERSION = 1
         CPPFLAGS  += -D_UNIX
-        CXXFLAGS  += -D_UNIX
+        CCFLAGS  += -D_UNIX
         LFLAGS     = -shared -Wl,-soname,lib$(TARGET)$(SO_EXT).$(SO_VERSION)
         LIBS      += -lGL -lX11 -lXxf86vm -lXext -lpthread -lm 
         OUT_DIR    = ../lib
 	else ifeq ($(UNAME_S),Darwin)
         SO_EXT     = .dylib
         CPPFLAGS  += -D_MACOSX -ObjC++
-        CXXFLAGS  += -D_MACOSX
+        CCFLAGS  += -D_MACOSX
         LFLAGS     = -dynamiclib -Wl,-undefined -Wl,dynamic_lookup
         LIBS      += -framework OpenGL -framework AppKit
         OUT_DIR    = ../lib
@@ -63,11 +63,7 @@ else
     SRC_FILES = $(SRC_COMMON) TwEventX11.c
 endif
 
-# OBJS_1    = $(SRC_FILES:.c=.o)
-# OBJS      = $(OBJS_1:.cpp=.o)
 OBJS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(SRC_FILES)))
-
-
 
 ifeq ($(OS),Windows_NT)
 	MKDIR = if not exist "$(subst /,\,$(OUT_DIR))" mkdir "$(subst /,\,$(OUT_DIR))"
