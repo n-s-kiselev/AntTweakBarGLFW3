@@ -148,22 +148,22 @@ static void mouseScrollCallback(GLFWwindow* _window, double _xoffset, double _yo
   if (TwEventMouseWheelGLFW((int)pos)) return;
 }
 
-static void framebufferSizeCallback(GLFWwindow* window, int fb_width, int fb_height)
-{
-    if (fb_height == 0) fb_height = 1;
-    float aspect = (float)fb_width / (float)fb_height;
-    float near = 1.0f, far = 100.0f;
-    float fov = 45.0f;
-    float top = tan(fov * 0.01745329251f) * near;
-    float bottom = -top;
-    float right = top * aspect;
-    float left = -right;
+// static void framebufferSizeCallback(GLFWwindow* window, int fb_width, int fb_height)
+// {
+//     if (fb_height == 0) fb_height = 1;
+//     float aspect = (float)fb_width / (float)fb_height;
+//     float near = 1.0f, far = 100.0f;
+//     float fov = 45.0f;
+//     float top = tan(fov * 0.01745329251f) * near;
+//     float bottom = -top;
+//     float right = top * aspect;
+//     float left = -right;
 
-    glViewport(0, 0, fb_width, fb_height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glFrustum(left, right, bottom, top, near, far);
-}
+//     glViewport(0, 0, fb_width, fb_height);
+//     glMatrixMode(GL_PROJECTION);
+//     glLoadIdentity();
+//     glFrustum(left, right, bottom, top, near, far);
+// }
 
 static void windowSizeCallback(GLFWwindow* window, int width, int height)
 {

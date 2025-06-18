@@ -45,7 +45,11 @@ ifeq ($(OS),Windows_NT)
         $(GLFW_DIR)/src/win32_monitor.c \
         $(GLFW_DIR)/src/win32_time.c \
         $(GLFW_DIR)/src/win32_thread.c \
+        $(GLFW_DIR)/src/win32_module.c \
+        $(GLFW_DIR)/src/wgl_context.c \
+        $(GLFW_DIR)/src/win32_init.c \
         $(GLFW_DIR)/src/win32_window.c \
+        $(GLFW_DIR)/src/egl_context.c \
         $(GLFW_DIR)/src/osmesa_context.c
 else
     UNAME_S := $(shell uname -s)
@@ -101,25 +105,27 @@ SRC_DIR = .
 INCLUDE_DIRS = -I../include -I$(GLAD_DIR)/include -I$(GLFW_DIR)/include
 
 ifeq ($(OS),Windows_NT)
+    SHELL := cmd.exe
+    .SHELLFLAGS := /C
     EXT = .exe
     CC = gcc
-    CXX = g++
-    PLATFORM_FLAG = -D OS_WINDOWS -D_GLFW_WIN32
+    CPP = g++
+    PLATFORM_FLAG = -DOS_WINDOWS -D_GLFW_WIN32 -DTW_STATIC
     LIBS_COMMON = -lopengl32 -lgdi32 -lwinmm -lpthread
     LIB_GLUT = -lglut32
 else
     ifeq ($(UNAME_S),Linux)
         EXT =
         CC = gcc
-        CXX = g++
-        PLATFORM_FLAG = -D OS_LINUX -D_GLFW_X11
+        CPP = g++
+        PLATFORM_FLAG = -DOS_LINUX -D_DEFAULT_SOURCE -D_GLFW_X11 
         LIBS_COMMON = -lGL -lGLU -lX11 -lXext -lXmu -lXrandr -lpthread -lm -ldl
         LIB_GLUT = -lglut
     else ifeq ($(UNAME_S),Darwin)
         EXT =
         CC = clang
-        CXX = clang++
-        PLATFORM_FLAG = -D OS_MACOS -DGL_SILENCE_DEPRECATION -D_GLFW_COCOA
+        CPP = clang++
+        PLATFORM_FLAG = -DOS_MACOS -D_DEFAULT_SOURCE -DGL_SILENCE_DEPRECATION -D_GLFW_COCOA
         INCLUDE_DIRS += -I/opt/homebrew/include
         LIBS_COMMON = -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
         LIB_GLUT = -lfreeglut
@@ -127,7 +133,7 @@ else
 endif
 
 CFLAGS = -Wall -O2 -fPIC -D_DEFAULT_SOURCE $(PLATFORM_FLAG) -I$(SRC_DIR) $(INCLUDE_DIRS)
-CXXFLAGS = $(CFLAGS)
+CPPFLAGS = $(CFLAGS)
 
 # === Build ===
 
@@ -155,15 +161,15 @@ glfw_objects: $(GLFW_OBJ)
 
 $(OUT_DIR)/TwSimpleGLFW$(EXT): TwSimpleGLFW.c $(GLAD_OBJ) $(GLFW_OBJ)
 	@echo "=== Building TwSimpleGLFW ==="
-	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) -o $@
+	$(CPP) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) -o $@
 
 $(OUT_DIR)/TwSimpleGLFW3$(EXT): TwSimpleGLFW3.c $(GLAD_OBJ) $(GLFW_OBJ)
 	@echo "=== Building TwSimpleGLFW3 ==="
-	$(CXX) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) -o $@
+	$(CPP) $(CFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) -o $@
 
 $(OUT_DIR)/TwAdvanced1$(EXT): TwAdvanced1.cpp $(GLAD_OBJ) $(GLFW_OBJ)
 	@echo "=== Building TwAdvanced1 ==="
-	$(CXX) $(CXXFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) -o $@
+	$(CPP) $(CPPFLAGS) $^ $(STATIC_LIB) $(LIBS_COMMON) -o $@
 
 # === Clean ===
 
