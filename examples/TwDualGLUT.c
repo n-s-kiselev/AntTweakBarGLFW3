@@ -12,7 +12,7 @@
 //  
 //  ---------------------------------------------------------------------------
 
-
+#include <glad/glad.h>
 #include <AntTweakBar.h>
 
 #include <stdlib.h>
@@ -23,7 +23,9 @@
 //  MiniGLUT.h is provided to avoid the need of having GLUT installed to 
 //  recompile this example. Do not use it in your own programs, better
 //  install and use the actual GLUT library SDK.
-#   define USE_MINI_GLUT
+#   ifdef FORCE_MINI_GLUT
+#       define USE_MINI_GLUT
+#   endif
 #endif
 
 #if defined(USE_MINI_GLUT)
@@ -33,8 +35,8 @@
     // #include <GL/glu.h>
     #include <GLUT/glut.h>
 #else
-    #include <GL/glu.h>
-    #include <GL/glut.h>
+    // #include <GL/glu.h>
+    #include <GL/freeglut.h>
 #endif
 
 
@@ -195,7 +197,21 @@ void DisplaySubWindow(void)
     // --- Projection setup ---
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(win->FOV, aspect, 1.0, 100.0);
+    
+    // Works with glu.h:
+    // gluPerspective(win->FOV, aspect, 1.0, 100.0);
+
+    float znear = 1.0f;
+    float zfar = 100.0f;
+    float fov = win->FOV;
+    float top = tan(fov * 0.01745329251f) * znear;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    glFrustum(left, right, bottom, top, znear, zfar);
+
+
 
     // On MacOs GLUT is known to be buggy, e.g. may not update the projection matrix:
     // GLfloat proj[16];
@@ -205,7 +221,10 @@ void DisplaySubWindow(void)
     // --- View setup ---
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    // Works with glu.h:
+    // gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    // This is equivalent to translating -5 on Z
+    glTranslatef(0.0f, 0.0f, -5.0f);
 
     // --- Clear Buffers ---
     glClearColor(73.0f / 255, 25.0f / 255, 100.0f / 255, 1.0f);
@@ -260,11 +279,27 @@ void DisplaySubWindowTest(void)
 {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(60, 1, 1.0, 100.0); // Should look very zoomed in
+    //  using glu.h:
+    // gluPerspective(60, 1, 1.0, 100.0); // Should look very zoomed in
+
+    float aspect = 1;
+    float znear = 1.0f;
+    float zfar = 100.0f;
+    float fov = 60.0f;
+    float top = tan(fov * 0.01745329251f) * znear;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    glFrustum(left, right, bottom, top, znear, zfar);
+
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    // Works with glu.h:
+    // gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    // This is equivalent to translating -5 on Z
+    glTranslatef(0.0f, 0.0f, -5.0f);
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -496,6 +531,11 @@ int main(int argc, char *argv[])
 	glutDisplayFunc(DisplayMainWindow);
 	glutReshapeFunc(ReshapeMainWindow);
 
+    // Initialize GLAD (for OpenGL, not EGL or GLX)
+    if (!gladLoadGL()) {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        return -1;
+    }
     // Initialize AntTweakBar
     TwInit(TW_OPENGL, NULL);
 

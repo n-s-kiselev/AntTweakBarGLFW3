@@ -12,7 +12,7 @@
 //
 //  ---------------------------------------------------------------------------
 
-
+#include <glad/glad.h>
 #include <AntTweakBar.h>
 
 #include <stdlib.h>
@@ -23,7 +23,9 @@
 //  MiniGLUT.h is provided to avoid the need of having GLUT installed to 
 //  recompile this example. Do not use it in your own programs, better
 //  install and use the actual GLUT library SDK.
-#   define USE_MINI_GLUT
+#   ifdef FORCE_MINI_GLUT
+#       define USE_MINI_GLUT
+#   endif
 #endif
 
 #if defined(USE_MINI_GLUT)
@@ -32,7 +34,7 @@
     #define GL_SILENCE_DEPRECATION
     #include <GLUT/glut.h>
 #else
-    #include <GL/glut.h>
+    #include <GL/freeglut.h>
 #endif
 
 // This example displays one of the following shapes
@@ -183,15 +185,42 @@ void Display(void)
 // Callback function called by GLUT when window size changes
 void Reshape(int width, int height)
 {
-    // Set OpenGL viewport and camera
+    // Set OpenGL viewport and camera using glu.h:
+    // glViewport(0, 0, width, height);
+    // glMatrixMode(GL_PROJECTION);
+    // glLoadIdentity();
+    // gluPerspective(40, (double)width/height, 1, 10);
+    // glMatrixMode(GL_MODELVIEW);
+    // glLoadIdentity();
+    // gluLookAt(0,0,5, 0,0,0, 0,1,0);
+    // glTranslatef(0, 0.6f, -1);   
+    
+
+    if (height == 0) height = 1;
+    float aspect = (float)width / (float)height;
+    float znear = 1.0f;
+    float zfar = 100.0f;
+    float fov = 45.0f;
+    float top = tan(fov * 0.01745329251f) * znear;
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(40, (double)width/height, 1, 10);
+    glFrustum(left, right, bottom, top, znear, zfar);
+
+    // Set up the modelview matrix (camera)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0,0,5, 0,0,0, 0,1,0);
-    glTranslatef(0, 0.6f, -1);
+
+    // Manual implementation of gluLookAt(0,0,5, 0,0,0, 0,1,0)
+    // This is equivalent to translating -5 on Z
+    glTranslatef(0.0f, 0.0f, -5.0f);
+
+    // Then apply the additional translation
+    glTranslatef(0.0f, 0.6f, -1.0f);
 
     // Send the new window size to AntTweakBar
     TwWindowSize(width, height);
@@ -252,6 +281,12 @@ int main(int argc, char *argv[])
     glutInitWindowSize(640, 480);
     glutCreateWindow("AntTweakBar simple example using GLUT");
     glutCreateMenu(NULL);
+
+    // Initialize GLAD (for OpenGL, not EGL or GLX)
+    if (!gladLoadGL()) {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        return -1;
+    }
 
     // Set GLUT callbacks
     glutDisplayFunc(Display);
