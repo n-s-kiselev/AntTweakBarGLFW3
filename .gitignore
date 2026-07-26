@@ -39,3 +39,12 @@ lib/*.dll
 lib/*.exp
 lib/*.so
 lib/*.so.*
+lib/*.dylib
+/nob
+/nob.exe
+/nob.old
+/build/
+AGENTS.md
+CLAUDE.md
+PLANS.md
+/docs
