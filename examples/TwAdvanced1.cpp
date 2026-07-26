@@ -43,6 +43,26 @@ bool g_cameraDragging = false;
 double g_lastMouseX = 0.0;
 double g_lastMouseY = 0.0;
 
+// AntTweakBar lays out widgets and hit-tests in raw pixel units with no DPI
+// awareness. On a Retina/HiDPI display, GLFW's window size (screen
+// coordinates, used by mouse callbacks) and framebuffer size (actual
+// pixels, used for rendering) differ by the display's content scale. We
+// keep TwWindowSize/glViewport in framebuffer-pixel units (matching the
+// real render target) and scale mouse coordinates from screen coordinates
+// into that same framebuffer-pixel space before forwarding them to
+// AntTweakBar. On a standard (non-HiDPI) display framebuffer size equals
+// window size, so this scale is exactly 1.0 and everything behaves as before.
+// (The camera-drag logic below deliberately keeps using window/screen
+// coordinates for its own delta normalization, which is resolution
+// independent and unaffected by this.)
+double g_MouseScaleX = 1.0, g_MouseScaleY = 1.0;
+
+// Window content scale (see fontscaling comment near TwInit() in main()),
+// stashed here so Scene::CreateBar() - which runs later, from Scene::Init(),
+// with no access to main()'s locals - can scale its own bar's panel size the
+// same way main() scales the "Main" bar's.
+float g_ContentScaleX = 1.0f, g_ContentScaleY = 1.0f;
+
 const char* title = "AntTweakBar example: TwAdvanced1";
 
 // Light structure: embeds light parameters
@@ -299,7 +319,7 @@ static void mousebuttonCallback(GLFWwindow* _window, int _button, int _action, i
 
 static void mousePosCallback(GLFWwindow* _window, double _xpos, double _ypos)
 {
-  if (TwEventMousePosGLFW((int)_xpos, (int)_ypos)) return;
+  if (TwEventMousePosGLFW((int)(_xpos * g_MouseScaleX), (int)(_ypos * g_MouseScaleY))) return;
 
   if (g_cameraDragging) {
       double dx = _xpos - g_lastMouseX;
@@ -326,6 +346,10 @@ static void mouseScrollCallback(GLFWwindow* _window, double _xoffset, double _yo
   if (TwEventMouseWheelGLFW((int)pos)) return;
 }
 
+// Registered as the FRAMEBUFFER size callback (not the window size callback):
+// GLFW reports this in actual pixels, matching glViewport/TwWindowSize, and
+// firing consistently (unlike mixing window-size and framebuffer-size calls)
+// is what keeps the render target and AntTweakBar's own canvas in sync.
 static void resizeCallback(GLFWwindow* _window, int _width, int _height)
 {
     if (_height == 0) _height = 1;
@@ -347,6 +371,11 @@ static void resizeCallback(GLFWwindow* _window, int _width, int _height)
 
   // Notify AntTweakBar of the window size
   TwWindowSize(_width, _height);
+
+  int winWidth = _width, winHeight = _height;
+  glfwGetWindowSize(_window, &winWidth, &winHeight);
+  g_MouseScaleX = (winWidth > 0) ? (double)_width / winWidth : 1.0;
+  g_MouseScaleY = (winHeight > 0) ? (double)_height / winHeight : 1.0;
 }
 
 
@@ -373,6 +402,13 @@ void Scene::CreateBar()
     // Create a new tweak bar and change its label, position and transparency
     lightsBar = TwNewBar("Lights");
     TwDefine(" Lights label='Lights TweakBar' position='580 16' alpha=0 help='Use this bar to edit the lights in the scene.' ");
+    // This bar has no explicit size='...' either, so - like 'Main' above -
+    // its panel needs the same explicit HiDPI scaling of TwBar's fixed
+    // 200x320 default (see the fontscaling/g_ContentScaleX comment in main()).
+    {
+        int lightsBarSize[2] = { (int)(200 * g_ContentScaleX + 0.5f), (int)(320 * g_ContentScaleY + 0.5f) };
+        TwSetParam(lightsBar, NULL, "size", TW_PARAM_INT32, 2, lightsBarSize);
+    }
 
     // Add a variable of type int to control the number of lights
     TwAddVarRW(lightsBar, "NumLights", TW_TYPE_INT32, &NumLights, 
@@ -766,6 +802,34 @@ int main()
     int height = 0;
     glfwGetFramebufferSize(window, &width, &height);
     resizeCallback(window, width, height);
+
+    // AntTweakBar draws every widget (buttons, sliders, panel, swatches) at a
+    // fixed number of pixels with no DPI awareness, so on a HiDPI/Retina
+    // display (where those pixels are physically smaller) the whole bar looks
+    // too small compared to a standard display. AntTweakBar's own "fontscaling"
+    // global parameter (must be set via TwDefine before TwInit) scales the
+    // font metrics that ALL of its widget-layout math derives from (row
+    // height, button/slider size, ...), so scaling it by the window's content
+    // scale factor makes the bar's contents - not just its text - render at a
+    // comparable physical size to a standard display, without touching any
+    // library source. On a standard (non-HiDPI) display the content scale is
+    // 1.0, so this is a no-op there.
+    //
+    // Every bar's own panel size is a separate matter: TwBar's default
+    // (200x320, set in TwBar.cpp, used whenever no explicit size='...' is
+    // given) is a fixed pixel constant that does NOT derive from font
+    // metrics, so it does not grow on its own to match the now-larger scaled
+    // content - it has to be scaled explicitly too, via TwSetParam after
+    // each TwNewBar() (see "Main" below and Scene::CreateBar()'s "Lights"),
+    // or the bigger post-fontscaling rows/labels would get clipped by an
+    // unchanged panel size.
+    glfwGetWindowContentScale(window, &g_ContentScaleX, &g_ContentScaleY);
+    {
+        char fontScalingDef[64];
+        snprintf(fontScalingDef, sizeof(fontScalingDef), "GLOBAL fontscaling=%g", (double)g_ContentScaleX);
+        TwDefine(fontScalingDef);
+    }
+
     // if (!TwInit(TW_OPENGL_CORE, NULL)) {
     if (!TwInit(TW_OPENGL, NULL)) {
         const char* err = TwGetLastError();
@@ -782,7 +846,15 @@ int main()
 
     // Create a tweak bar called 'Main' and change its refresh rate, position, size and transparency
     TwBar *mainBar = TwNewBar("Main");
-    TwDefine(" Main label='Main TweakBar' refresh=0.5 position='16 16' size='260 320' alpha=0");
+    TwDefine(" Main label='Main TweakBar' refresh=0.5 position='16 16' alpha=0");
+    // The bar's declared size must be scaled the same way fontscaling already
+    // scaled its contents above, or the panel and its (now larger) widgets
+    // would mismatch again on a HiDPI/Retina display - hence TwSetParam
+    // instead of a literal size='260 320' in the TwDefine string above.
+    {
+        int mainBarSize[2] = { (int)(260 * g_ContentScaleX + 0.5f), (int)(320 * g_ContentScaleY + 0.5f) };
+        TwSetParam(mainBar, NULL, "size", TW_PARAM_INT32, 2, mainBarSize);
+    }
 
     // Add some variables to the Main tweak bar
     TwAddVarRW(mainBar, "Wireframe", TW_TYPE_BOOLCPP, &scene.Wireframe, 
@@ -816,7 +888,7 @@ int main()
     glfwSetMouseButtonCallback(window, mousebuttonCallback);
     glfwSetCursorPosCallback(window, mousePosCallback);
     glfwSetScrollCallback(window, mouseScrollCallback);
-    glfwSetWindowSizeCallback(window, resizeCallback);
+    glfwSetFramebufferSizeCallback(window, resizeCallback);
 
     // Initialize time
     double time = glfwGetTime(), dt = 0;            // Current time and elapsed time
