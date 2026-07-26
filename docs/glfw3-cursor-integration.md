@@ -10,6 +10,14 @@ rotation cursors are not rendered reliably.
 
 The immediate platform mechanisms differ:
 
+- Before GLFW3 cursor ownership is addressed, AntTweakBar's native macOS
+  custom-cursor bitmap must also be corrected. The original
+  `CTwMgr::PixmapCursor` packs grayscale and alpha into a 2-bit
+  `NSBitmapImageRep`. Modern AppKit accepts the object but interprets the
+  representation as transparent, making the pointer disappear under both
+  GLFW and FreeGLUT. Replace that packed representation with an explicit
+  32-bit RGBA bitmap: copy `g_CurPict` into the RGB channels and `g_CurMask`
+  into the alpha channel, then construct `NSCursor` from the resulting image.
 - On macOS, AntTweakBar successfully calls `[NSCursor set]`, but GLFW3's Cocoa
   view installs an `NSTrackingArea` with `NSTrackingCursorUpdate`.
   `cursorUpdate:` calls GLFW3's `updateCursorImage()`. When the application
@@ -34,8 +42,9 @@ remains unchanged for GLUT, GLFW2, and legacy applications.
 
 The GLFW3 binding should:
 
-1. Create and cache standard and custom `GLFWcursor` objects, converting the
-   existing AntTweakBar cursor masks/images to RGBA where necessary.
+1. Create and cache standard and custom `GLFWcursor` objects. Always convert
+   the existing AntTweakBar cursor picture/mask pairs to explicit 32-bit RGBA;
+   do not copy the legacy packed AppKit representation.
 2. Translate each semantic AntTweakBar cursor request to the cached object.
 3. Apply it with `glfwSetCursor(window, cursor)`.
 4. Destroy cached cursors during binding shutdown.
