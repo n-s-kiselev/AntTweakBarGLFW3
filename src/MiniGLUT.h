@@ -32,11 +32,14 @@
 
 #if defined(_MACOSX)
 #   include <OpenGL/gl.h>
-#   include <OpenGL/glu.h>
 #else
 #   include <GL/gl.h>  // must be included after windows.h
-#   include <GL/glu.h>
 #endif
+// No <GL/glu.h>/<OpenGL/glu.h>: nothing in this header or TwEventGLUT.c
+// actually uses any GLU (glu*) function or type, only GLdouble/GLint from
+// gl.h itself, so requiring the separate GLU dev package (not installed by
+// default on many Linux distros, e.g. needs libglu1-mesa-dev on Debian/
+// Ubuntu) to build this library at all would be an unnecessary dependency.
 
 #ifdef __cplusplus
 extern "C" {
