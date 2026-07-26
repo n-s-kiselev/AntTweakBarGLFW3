@@ -212,6 +212,42 @@ TW_API int      TW_CALL TwSetCurrentWindow(int windowID); // multi-windows suppo
 TW_API int      TW_CALL TwGetCurrentWindow();
 TW_API int      TW_CALL TwWindowExists(int windowID);
 
+// ----------------------------------------------------------------------------
+
+// AntTweakBar predates cursor-ownership models like GLFW3's
+// (glfwCreateCursor()/glfwSetCursor()) and changes the system cursor
+// directly through Win32/AppKit/Xlib. Toolkits that reassert their own
+// cursor on every mouse move (GLFW3's Cocoa backend is one) silently
+// overwrite AntTweakBar's choice. Installing a callback here makes
+// AntTweakBar invoke it - with a toolkit-agnostic semantic cursor - instead
+// of its native cursor-setting path, so a binding (e.g. one using GLFW3's
+// own cursor API) can give the toolkit authoritative ownership. Existing
+// native behavior is unchanged when no callback is installed.
+typedef enum ETwCursor
+{
+    TW_CURSOR_ARROW         = 0,
+    TW_CURSOR_MOVE          = 1,
+    TW_CURSOR_RESIZE_WE     = 2,   // horizontal resize (left/right edge)
+    TW_CURSOR_RESIZE_NS     = 3,   // vertical resize (top/bottom edge)
+    TW_CURSOR_RESIZE_NESW   = 4,   // diagonal resize (top-right/bottom-left)
+    TW_CURSOR_RESIZE_NWSE   = 5,   // diagonal resize (top-left/bottom-right)
+    TW_CURSOR_HELP          = 6,
+    TW_CURSOR_HAND          = 7,
+    TW_CURSOR_CROSS         = 8,
+    TW_CURSOR_UPARROW       = 9,
+    TW_CURSOR_NO            = 10,
+    TW_CURSOR_IBEAM         = 11,
+    TW_CURSOR_CUSTOM        = 12   // see _RGBA32x32/_HotX/_HotY below
+} ETwCursor;
+
+// _RGBA32x32 is a ready 32x32, 8-bit-per-channel RGBA bitmap (non-premultiplied
+// alpha) and (_HotX,_HotY) its hotspot, valid only for the duration of the
+// call; only meaningful (non-NULL) when _Cursor==TW_CURSOR_CUSTOM, which
+// AntTweakBar uses for its center/point/rotate cursors (no standard-shape
+// equivalent exists across platforms/toolkits).
+typedef void (TW_CALL * TwCursorCB)(ETwCursor _Cursor, const unsigned char *_RGBA32x32, int _HotX, int _HotY, void *_ClientData);
+TW_API void     TW_CALL TwSetCursorCallback(TwCursorCB _Callback, void *_ClientData);
+
 typedef enum ETwKeyModifier
 {
     TW_KMOD_NONE        = 0x0000,   // same codes as SDL keysym.mod

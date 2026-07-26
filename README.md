@@ -41,7 +41,7 @@ Then:
 
 `./nob -examples` compiles the only four examples this fork keeps, adapted to
 GLFW3+[GLAD](https://glad.dav1d.de/)+Core Profile
-(`TwSimpleGLFW21.c`, `TwSimpleGLFW33.c`, `TwSimpleGLFW34.c`, `TwAdvanced1.cpp`)
+(`TwSimpleGLFW21.c`, `TwSimpleGLFW33.c`, `TwSimpleGLFW41.c`, `TwAdvanced1.cpp`)
 statically against `lib/libAntTweakBarGLFW3.a` into `build/examples/`, and
 fails with a clear message if the library hasn't been built yet.
 
@@ -68,6 +68,31 @@ files have been removed, along with the Direct3D9/10/11 renderer backend and
 the native-Win32 `TwEventWin` event helper (dead code only those legacy
 projects still compiled - never built by `nob.c`, and gated behind a
 `TW_USE_DIRECT3D` macro that was never defined anywhere in this repo).
+
+## Fixed: custom cursors under GLFW3
+
+AntTweakBar predates GLFW3 and used to change the system cursor directly
+through Win32/AppKit/Xlib, which GLFW3 toolkits that reassert their own
+cursor on every mouse move (e.g. macOS's Cocoa backend) silently overwrote -
+so AntTweakBar's custom resize/hand/point/rotate cursors never actually
+rendered. This is now fixed:
+
+- A new public `TwSetCursorCallback()` API (`include/AntTweakBar.h`) lets a
+  binding take over cursor changes with a toolkit-agnostic semantic cursor,
+  instead of AntTweakBar setting the system cursor natively.
+- All four GLFW3 examples install a binding that routes cursor changes
+  through `glfwSetCursor()`/`glfwCreateCursor()`, giving GLFW3 authoritative
+  ownership - confirmed on real Retina hardware.
+- The underlying macOS cursor-bitmap bug (`CTwMgr::PixmapCursor`'s packed
+  2-bit representation, rendered fully transparent by current AppKit) and
+  Linux/X11 window-resolution bug (`glXGetCurrentDrawable()` returning a
+  GLFW-internal `GLXWindow` instead of the real `Window`) are also fixed, the
+  same way they were in the sibling
+  [AntTweakBar-Legacy](https://github.com/n-s-kiselev/AntTweakBar-Legacy)
+  repo.
+
+See [`docs/glfw3-cursor-integration.md`](docs/glfw3-cursor-integration.md)
+for the full root-cause analysis.
 
 ## License
 

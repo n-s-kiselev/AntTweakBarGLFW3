@@ -18,7 +18,6 @@
 #include "TwOpenGL.h"
 #include "TwOpenGLCore.h"
 #ifdef ANT_WINDOWS
-#   include "resource.h"
 #   ifdef _DEBUG
 #       include <crtdbg.h>
 #   endif // _DEBUG
@@ -28,6 +27,11 @@
 #   define _snprintf snprintf
 #endif  // defined(ANT_WINDOWS)
 
+// g_CurPict/g_CurMask/g_CurHot (cursor pixmap data): needed unconditionally
+// (not just inside one platform's cursor code below) to build the RGBA
+// bitmaps passed to an installed TwCursorCB for TW_CURSOR_CUSTOM - see
+// BuildCustomCursorRGBA() near CTwMgr::SetCursor().
+#include "res/TwXCursors.h"
 
 using namespace std;
 
@@ -41,6 +45,8 @@ int g_InitWndHeight = -1;
 TwCopyCDStringToClient  g_InitCopyCDStringToClient = NULL;
 TwCopyStdStringToClient g_InitCopyStdStringToClient = NULL;
 float g_FontScaling = 1.0f;
+TwCursorCB g_CursorCallback = NULL;
+void *     g_CursorCallbackClientData = NULL;
 
 // multi-windows
 const int TW_MASTER_WINDOW_ID = 0;
@@ -83,7 +89,11 @@ void ANT_CALL TwGlobalError(const char *_ErrorMessage);
 #endif
 
 #ifdef ANT_WINDOWS
-    bool g_UseCurRsc = true;    // use dll resources for rotoslider cursors
+    // Custom center/point/roto cursors used to optionally come from .rc-
+    // embedded DLL resources (IDC_CURSOR1+n); this fork's nob.c build never
+    // compiles a .rc script, so those resources never exist - always build
+    // them from the res/TwXCursors.h pixmap data via PixmapCursor() instead.
+    bool g_UseCurRsc = false;
 #endif
 
 //  ---------------------------------------------------------------------------
@@ -2052,13 +2062,22 @@ int ANT_CALL TwDraw()
     #elif defined(ANT_UNIX)
         if( !g_TwMgr->m_CurrentXDisplay)
             g_TwMgr->m_CurrentXDisplay = glXGetCurrentDisplay();
-            // g_TwMgr->m_CurrentXDisplay = glfwGetX11Display();//NSK
-        if( !g_TwMgr->m_CurrentXWindow )
-            g_TwMgr->m_CurrentXWindow = glXGetCurrentDrawable();
-            // g_TwMgr->m_CurrentXWindow = glfwGetX11Window(window);//NSK
-        if( g_TwMgr->m_CurrentXDisplay && !g_TwMgr->m_CursorsCreated ){
-            // g_TwMgr->CreateCursors();//NSK
+        if( !g_TwMgr->m_CurrentXWindow && g_TwMgr->m_CurrentXDisplay )
+        {
+            // Not glXGetCurrentDrawable(): with some windowing toolkits
+            // (e.g. GLFW, unlike GLUT) the GL context is bound to a
+            // GLXWindow created via glXCreateWindow(), a distinct X
+            // resource from the real Window that XDefineCursor() and
+            // XCreatePixmapCursor() need - using it directly causes
+            // BadWindow/BadCursor errors and cursors never render. The
+            // window with input focus is the real one.
+            Window focus; int revertTo;
+            XGetInputFocus(g_TwMgr->m_CurrentXDisplay, &focus, &revertTo);
+            if( focus!=None && focus!=PointerRoot )
+                g_TwMgr->m_CurrentXWindow = focus;
         }
+        if( g_TwMgr->m_CurrentXDisplay && !g_TwMgr->m_CursorsCreated )
+            g_TwMgr->CreateCursors();
     #endif
 
     // Autorepeat TW_MOUSE_PRESSED
@@ -6184,9 +6203,50 @@ void CTwMgr::UpdateHelpBar()
 
 //  ---------------------------------------------------------------------------
 
-#if defined(ANT_WINDOWS)
+// Builds a 32x32, 8-bit-per-channel RGBA (non-premultiplied alpha) bitmap
+// from g_CurPict/g_CurMask/g_CurHot (res/TwXCursors.h) for cursor _CurIdx,
+// for TwCursorCB's TW_CURSOR_CUSTOM case - the same source data
+// PixmapCursor() converts to each platform's own native cursor format.
+static void BuildCustomCursorRGBA(int _CurIdx, unsigned char *_OutRGBA32x32, int *_OutHotX, int *_OutHotY)
+{
+    for( int y=0; y<32; ++y )
+    {
+        for( int x=0; x<32; ++x )
+        {
+            const int src = x + y*32;
+            const int dst = 4*src;
+            const unsigned char shade = g_CurPict[_CurIdx][src] ? 255 : 0;
+            _OutRGBA32x32[dst+0] = shade;
+            _OutRGBA32x32[dst+1] = shade;
+            _OutRGBA32x32[dst+2] = shade;
+            _OutRGBA32x32[dst+3] = g_CurMask[_CurIdx][src] ? 255 : 0;
+        }
+    }
+    *_OutHotX = g_CurHot[_CurIdx][0];
+    *_OutHotY = g_CurHot[_CurIdx][1];
+}
 
-#include "res/TwXCursors.h"
+// Common entry point for every platform's CTwMgr::SetCursor(): dispatches to
+// the callback installed via TwSetCursorCallback (see AntTweakBar.h) and
+// reports whether it handled the request - if so, the caller's native
+// cursor-setting code below must be skipped entirely.
+static bool DispatchCursorCallback(ETwCursor _Semantic, int _BitmapIdx)
+{
+    if( g_CursorCallback==NULL )
+        return false;
+    if( _Semantic==TW_CURSOR_CUSTOM && _BitmapIdx>=0 )
+    {
+        unsigned char rgba[32*32*4];
+        int hotX, hotY;
+        BuildCustomCursorRGBA(_BitmapIdx, rgba, &hotX, &hotY);
+        g_CursorCallback(_Semantic, rgba, hotX, hotY, g_CursorCallbackClientData);
+    }
+    else
+        g_CursorCallback(_Semantic, NULL, 0, 0, g_CursorCallbackClientData);
+    return true;
+}
+
+#if defined(ANT_WINDOWS)
 
 void CTwMgr::CreateCursors()
 {
@@ -6211,28 +6271,17 @@ void CTwMgr::CreateCursors()
         m_CursorHand = ::LoadCursor(NULL ,MAKEINTRESOURCE(IDC_UPARROW));
     #endif
     int cur;
-    HMODULE hdll = GetModuleHandle(ANT_TWEAK_BAR_DLL);
-    if( hdll==NULL )
-        g_UseCurRsc = false;    // force the use of built-in cursors (not using resources)
-    if( g_UseCurRsc )
-        m_CursorCenter = ::LoadCursor(hdll, MAKEINTRESOURCE(IDC_CURSOR1+0));
-    else
-        m_CursorCenter  = PixmapCursor(0);
+    (void)g_UseCurRsc; // kept (always false) for FreeCursors()'s matching check
+    m_CursorCenter = PixmapCursor(0);
     if( m_CursorCenter==NULL )
         m_CursorCenter = ::LoadCursor(NULL ,MAKEINTRESOURCE(IDC_CROSS));
-    if( g_UseCurRsc )
-        m_CursorPoint = ::LoadCursor(hdll, MAKEINTRESOURCE(IDC_CURSOR1+1));
-    else
-        m_CursorPoint   = PixmapCursor(1);
+    m_CursorPoint = PixmapCursor(1);
     if( m_CursorPoint==NULL )
         m_CursorPoint = ::LoadCursor(NULL ,MAKEINTRESOURCE(IDC_CROSS));
 
     for( cur=0; cur<NB_ROTO_CURSORS; ++cur )
     {
-        if( g_UseCurRsc )
-            m_RotoCursors[cur] = ::LoadCursor(hdll, MAKEINTRESOURCE(IDC_CURSOR1+2+cur));
-        else
-            m_RotoCursors[cur] = PixmapCursor(cur+2);
+        m_RotoCursors[cur] = PixmapCursor(cur+2);
         if( m_RotoCursors[cur]==NULL )
             m_RotoCursors[cur] = ::LoadCursor(NULL ,MAKEINTRESOURCE(IDC_CROSS));
     }
@@ -6297,8 +6346,10 @@ void CTwMgr::FreeCursors()
     m_CursorsCreated = false;
 }
 
-void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
+void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor, ETwCursor _Semantic, int _BitmapIdx)
 {
+    if( DispatchCursorCallback(_Semantic, _BitmapIdx) )
+        return;
     if( m_CursorsCreated )
     {
         CURSORINFO ci;
@@ -6313,35 +6364,37 @@ void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
 
 #elif defined(ANT_OSX)
 
-#include "res/TwXCursors.h"
-
 CTwMgr::CCursor CTwMgr::PixmapCursor(int _CurIdx)
 {
     unsigned char *data;
-    int x,y;
-    
-    NSBitmapImageRep *imgr = [[NSBitmapImageRep alloc] 
+    int x, y;
+    // Use an explicit RGBA representation. The previous packed two-bit
+    // grayscale/alpha bitmap is accepted by AppKit but is interpreted as
+    // fully transparent by current macOS releases.
+    NSBitmapImageRep *imgr = [[NSBitmapImageRep alloc]
                               initWithBitmapDataPlanes: NULL
                               pixelsWide: 32
                               pixelsHigh: 32
-                              bitsPerSample: 1
-                              samplesPerPixel: 2
+                              bitsPerSample: 8
+                              samplesPerPixel: 4
                               hasAlpha: YES
                               isPlanar: NO
-                              colorSpaceName: NSCalibratedWhiteColorSpace
+                              colorSpaceName: NSDeviceRGBColorSpace
                               bitmapFormat: NSAlphaNonpremultipliedBitmapFormat
-                              bytesPerRow: 8
-                              bitsPerPixel: 2
+                              bytesPerRow: 32*4
+                              bitsPerPixel: 32
                               ];
     data = [imgr bitmapData];
-    memset(data,0x0,32*8);
-    for (y=0;y<32;y++) {
-        for (x=0;x<32;x++) {
-            //printf("%d",g_CurMask[_CurIdx][x+y*32]);
-            data[(x>>2) + y*8] |= (unsigned char)(g_CurPict[_CurIdx][x+y*32] << 2*(3-(x&3))+1); //turn whiteon
-            data[(x>>2) + y*8] |= (unsigned char)(g_CurMask[_CurIdx][x+y*32] << 2*(3-(x&3))); //turn the alpha all the way up
+    for (y=0; y<32; ++y) {
+        for (x=0; x<32; ++x) {
+            const int src = x + y*32;
+            const int dst = 4*src;
+            const unsigned char shade = g_CurPict[_CurIdx][src] ? 255 : 0;
+            data[dst+0] = shade;
+            data[dst+1] = shade;
+            data[dst+2] = shade;
+            data[dst+3] = g_CurMask[_CurIdx][src] ? 255 : 0;
         }
-        //printf("\n");
     }
     NSImage *img = [[NSImage alloc] initWithSize: [imgr size]];
     [img addRepresentation: imgr];
@@ -6352,14 +6405,14 @@ CTwMgr::CCursor CTwMgr::PixmapCursor(int _CurIdx)
     if (cur)
         return cur;
     else
-        return [NSCursor arrowCursor];
+        return [[NSCursor arrowCursor] retain];
 }
 
 void CTwMgr::CreateCursors()
 {
     if (m_CursorsCreated)
         return;
-    
+
     m_CursorArrow        = [[NSCursor arrowCursor] retain];
     m_CursorMove         = [[NSCursor crosshairCursor] retain];
     m_CursorWE           = [[NSCursor resizeLeftRightCursor] retain];
@@ -6376,10 +6429,10 @@ void CTwMgr::CreateCursors()
     m_CursorIBeam        = [[NSCursor IBeamCursor] retain];
     for (int i=0;i<NB_ROTO_CURSORS; i++)
     {
-        m_RotoCursors[i] = [PixmapCursor(i+2) retain];
+        m_RotoCursors[i] = PixmapCursor(i+2);
     }
-    m_CursorCenter  = [PixmapCursor(0) retain];
-    m_CursorPoint   = [PixmapCursor(1) retain];
+    m_CursorCenter  = PixmapCursor(0);
+    m_CursorPoint   = PixmapCursor(1);
     m_CursorsCreated = true;
 }
 
@@ -6406,8 +6459,10 @@ void CTwMgr::FreeCursors()
     m_CursorsCreated = false;
 }
 
-void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
+void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor, ETwCursor _Semantic, int _BitmapIdx)
 {
+    if( DispatchCursorCallback(_Semantic, _BitmapIdx) )
+        return;
     if (m_CursorsCreated && _Cursor) {
         [_Cursor set];
     }
@@ -6415,8 +6470,6 @@ void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
 
 
 #elif defined(ANT_UNIX)
-
-#include "res/TwXCursors.h"
 
 static XErrorHandler s_PrevErrorHandler = NULL;
 
@@ -6560,14 +6613,26 @@ void CTwMgr::FreeCursors()
     RestoreXErrors();   
 }
 
-void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
+void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor, ETwCursor _Semantic, int _BitmapIdx)
 {
+    if( DispatchCursorCallback(_Semantic, _BitmapIdx) )
+        return;
     if( m_CursorsCreated && m_CurrentXDisplay && m_CurrentXWindow )
     {
         Display *dpy = glXGetCurrentDisplay();
         if( dpy==g_TwMgr->m_CurrentXDisplay )
         {
-            Window wnd = glXGetCurrentDrawable();
+            // See the matching comment in TwDraw(): use the window with
+            // input focus, not glXGetCurrentDrawable() (a GLXWindow under
+            // some toolkits, not the real Window XDefineCursor() needs).
+            Window wnd; int revertTo;
+            XGetInputFocus(dpy, &wnd, &revertTo);
+            if( wnd==None || wnd==PointerRoot )
+            {
+                // no reliable window right now; keep the previous one and
+                // try to set the cursor on it anyway
+                wnd = g_TwMgr->m_CurrentXWindow;
+            }
             if( wnd!=g_TwMgr->m_CurrentXWindow )
             {
                 FreeCursors();
@@ -6586,6 +6651,14 @@ void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor)
 }
 
 #endif //defined(ANT_UNIX)
+
+//  ---------------------------------------------------------------------------
+
+void TW_CALL TwSetCursorCallback(TwCursorCB _Callback, void *_ClientData)
+{
+    g_CursorCallback = _Callback;
+    g_CursorCallbackClientData = _ClientData;
+}
 
 //  ---------------------------------------------------------------------------
 

@@ -198,7 +198,7 @@ float vertices[] = {
      0.5f,-0.5f,-0.5f, 0.0f,1.0f,0.0f,
      0.5f, 0.5f,-0.5f, 0.0f,0.0f,1.0f,
     -0.5f, 0.5f,-0.5f, 1.0f,1.0f,0.0f,
-    
+
     -0.5f,-0.5f, 0.5f, 0.0f,1.0f,1.0f,
      0.5f,-0.5f, 0.5f, 1.0f,0.0f,1.0f,
      0.5f, 0.5f, 0.5f, 0.5f,0.5f,0.5f,
@@ -225,7 +225,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-int main() 
+int main()
 {
     GLFWwindow* window; // GLFW3 window
     TwBar *bar;         // Pointer to a tweak bar
@@ -240,9 +240,12 @@ int main()
         return -1;
     }
 
-    // Configure GLFW for macOS
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    // Configure GLFW for macOS - OpenGL 4.1 Core Profile is the highest
+    // Core Profile version macOS's OpenGL implementation supports (macOS
+    // never implemented Compatibility Profile above 2.1, so 4.1 is only
+    // reachable via Core Profile).
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
@@ -255,7 +258,7 @@ int main()
         glfwTerminate();
         return -1;
     }
-    
+
     glfwMakeContextCurrent(window);
     // glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -271,16 +274,16 @@ int main()
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    
+
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    
+
     unsigned int shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -301,7 +304,7 @@ int main()
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    
+
     // Color attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
@@ -322,7 +325,7 @@ int main()
       int width, hight;
       // glfwGetFramebufferSize(window, &width, &hight);
       // framebufferSizeCallback(window, width, hight);
-      glfwGetWindowSize(window, &width, &hight); 
+      glfwGetWindowSize(window, &width, &hight);
       windowSizeCallback(window, width, hight);
     }
 
@@ -331,7 +334,7 @@ int main()
     TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
 
     // Add 'speed' to 'bar': it is a modifable (RW) variable of type TW_TYPE_DOUBLE. Its key shortcuts are [s] and [S].
-    TwAddVarRW(bar, "speed", TW_TYPE_DOUBLE, &speed, 
+    TwAddVarRW(bar, "speed", TW_TYPE_DOUBLE, &speed,
                 " label='Rot speed' min=0 max=2 step=0.01 keyIncr=s keyDecr=S help='Rotation speed (turns/second)' ");
 
 
@@ -364,7 +367,7 @@ int main()
         if (dt < 0) dt = 0;
         time += dt;
         angle += speed * dt;
-        
+
         // Model matrix
         float model[16] = {
             cosf(angle), 0.0f, sinf(angle), 0.0f,
@@ -372,7 +375,7 @@ int main()
             -sinf(angle), 0.0f, cosf(angle), 0.0f,
             0.0f, 0.0f, -3.0f, 1.0f
         };
-        
+
         // Projection matrix
         float fov = 45.0f;
         float aspect = 800.0f / 600.0f;

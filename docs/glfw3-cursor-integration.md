@@ -1,5 +1,22 @@
 # AntTweakBar custom cursors with GLFW3
 
+## Status: Fixed (2026-07-26)
+
+The design below ("Recommended future design") has been implemented: a
+public `TwSetCursorCallback()` API (`include/AntTweakBar.h`), wired into
+`CTwMgr::SetCursor()` (`src/TwMgr.cpp`) so it's invoked instead of native
+platform cursor code whenever installed, and a GLFW3 binding
+(`glfwCreateCursor()`/`glfwCreateStandardCursor()`/`glfwSetCursor()`)
+installed in all four GLFW3 examples (`TwSimpleGLFW21.c`, `TwSimpleGLFW33.c`,
+`TwSimpleGLFW41.c`, `TwAdvanced1.cpp`, prototyped on `TwAdvanced1` first as
+recommended below). The macOS `PixmapCursor` bitmap bug and the Linux/X11
+`glXGetCurrentDrawable()`-vs-real-`Window` bug (both described below) were
+also fixed, ported from the sibling `AntTweakBar-Legacy` repo's own fixes.
+Confirmed via before/after screenshots on real Retina hardware (macOS); the
+Linux/X11 fix is ported but not independently re-verified on real hardware
+this session. See `docs/plans/glfw3-cursor-ownership-fix.md` for the full
+implementation record.
+
 ## Confirmed problem
 
 AntTweakBar predates GLFW3 and changes the system cursor directly through

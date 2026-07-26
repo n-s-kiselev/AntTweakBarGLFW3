@@ -63,6 +63,71 @@ double g_MouseScaleX = 1.0, g_MouseScaleY = 1.0;
 // same way main() scales the "Main" bar's.
 float g_ContentScaleX = 1.0f, g_ContentScaleY = 1.0f;
 
+// GLFW3 cursor binding (see docs/glfw3-cursor-integration.md): AntTweakBar
+// predates cursor-ownership models like GLFW3's and sets the system cursor
+// directly, which GLFW3 toolkits that reassert their own cursor on every
+// mouse move (e.g. macOS's Cocoa backend) silently overwrite. Installing
+// this as AntTweakBar's cursor callback (TwSetCursorCallback, below) routes
+// every cursor change through glfwSetCursor() instead, so GLFW3 owns it.
+static GLFWcursor* g_StandardCursors[TW_CURSOR_CUSTOM] = { NULL };
+static GLFWcursor* g_LastCustomCursor = NULL;
+
+static int GLFWStandardCursorShape(ETwCursor _Cursor)
+{
+    switch (_Cursor) {
+    case TW_CURSOR_ARROW:        return GLFW_ARROW_CURSOR;
+    case TW_CURSOR_MOVE:         return GLFW_RESIZE_ALL_CURSOR;
+    case TW_CURSOR_RESIZE_WE:    return GLFW_RESIZE_EW_CURSOR;
+    case TW_CURSOR_RESIZE_NS:    return GLFW_RESIZE_NS_CURSOR;
+    case TW_CURSOR_RESIZE_NESW:  return GLFW_RESIZE_NESW_CURSOR;
+    case TW_CURSOR_RESIZE_NWSE:  return GLFW_RESIZE_NWSE_CURSOR;
+    case TW_CURSOR_HAND:         return GLFW_POINTING_HAND_CURSOR;
+    case TW_CURSOR_CROSS:        return GLFW_CROSSHAIR_CURSOR;
+    case TW_CURSOR_IBEAM:        return GLFW_IBEAM_CURSOR;
+    case TW_CURSOR_NO:           return GLFW_NOT_ALLOWED_CURSOR;
+    default:                     return GLFW_ARROW_CURSOR; // TW_CURSOR_HELP/UPARROW: no dedicated GLFW shape
+    }
+}
+
+static void TW_CALL GLFWCursorCB(ETwCursor _Cursor, const unsigned char *_RGBA32x32, int _HotX, int _HotY, void *_ClientData)
+{
+    GLFWwindow *window = (GLFWwindow *)_ClientData;
+    if (_Cursor == TW_CURSOR_CUSTOM && _RGBA32x32 != NULL) {
+        GLFWimage img;
+        img.width = 32; img.height = 32;
+        img.pixels = (unsigned char *)_RGBA32x32; // glfwCreateCursor only reads it
+        GLFWcursor *cur = glfwCreateCursor(&img, _HotX, _HotY);
+        if (cur != NULL) {
+            // Set the new cursor before destroying the old one: destroying
+            // a cursor still current for a window resets that window to
+            // the default arrow, which would undo this if done first.
+            glfwSetCursor(window, cur);
+            if (g_LastCustomCursor != NULL)
+                glfwDestroyCursor(g_LastCustomCursor);
+            g_LastCustomCursor = cur;
+        }
+        return;
+    }
+    if (g_StandardCursors[_Cursor] == NULL)
+        g_StandardCursors[_Cursor] = glfwCreateStandardCursor(GLFWStandardCursorShape(_Cursor));
+    if (g_StandardCursors[_Cursor] != NULL)
+        glfwSetCursor(window, g_StandardCursors[_Cursor]);
+}
+
+static void DestroyGLFWCursorCache()
+{
+    for (int i = 0; i < TW_CURSOR_CUSTOM; ++i) {
+        if (g_StandardCursors[i] != NULL) {
+            glfwDestroyCursor(g_StandardCursors[i]);
+            g_StandardCursors[i] = NULL;
+        }
+    }
+    if (g_LastCustomCursor != NULL) {
+        glfwDestroyCursor(g_LastCustomCursor);
+        g_LastCustomCursor = NULL;
+    }
+}
+
 const char* title = "AntTweakBar example: TwAdvanced1";
 
 // Light structure: embeds light parameters
@@ -837,6 +902,8 @@ int main()
         fflush(stderr);
         return 1;
     }
+    // Give GLFW3 authoritative cursor ownership (see GLFWCursorCB above).
+    TwSetCursorCallback(GLFWCursorCB, window);
     // Change the font size, and add a global message to the Help bar.
     TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
 
@@ -934,6 +1001,7 @@ int main()
 
     // Terminate AntTweakBar and GLFW
     TwTerminate();
+    DestroyGLFWCursorCache();
     glfwTerminate();
 
     return 0;

@@ -31,8 +31,49 @@ const char *g_ErrNotEnum        = "Must be of type Enum";
 
 PerfTimer g_BarTimer;
 
-#define ANT_SET_CURSOR(_Name)       g_TwMgr->SetCursor(g_TwMgr->m_Cursor##_Name)
-#define ANT_SET_ROTO_CURSOR(_Num)   g_TwMgr->SetCursor(g_TwMgr->m_RotoCursors[_Num])
+// Maps each named native cursor to the toolkit-agnostic ETwCursor value (and,
+// for the custom ones, the res/TwXCursors.h bitmap index) reported to a
+// callback installed via TwSetCursorCallback (see AntTweakBar.h and
+// CTwMgr::SetCursor). Center/Point/the 12 roto cursors have no
+// standard-shape equivalent across platforms/toolkits, so they all collapse
+// to TW_CURSOR_CUSTOM plus a bitmap index CTwMgr::SetCursor converts to an
+// RGBA bitmap on demand.
+#define ANT_CURSOR_SEMANTIC_Arrow           TW_CURSOR_ARROW
+#define ANT_CURSOR_SEMANTIC_Move            TW_CURSOR_MOVE
+#define ANT_CURSOR_SEMANTIC_WE              TW_CURSOR_RESIZE_WE
+#define ANT_CURSOR_SEMANTIC_NS              TW_CURSOR_RESIZE_NS
+#define ANT_CURSOR_SEMANTIC_TopRight        TW_CURSOR_RESIZE_NESW
+#define ANT_CURSOR_SEMANTIC_BottomLeft      TW_CURSOR_RESIZE_NESW
+#define ANT_CURSOR_SEMANTIC_TopLeft         TW_CURSOR_RESIZE_NWSE
+#define ANT_CURSOR_SEMANTIC_BottomRight     TW_CURSOR_RESIZE_NWSE
+#define ANT_CURSOR_SEMANTIC_Help            TW_CURSOR_HELP
+#define ANT_CURSOR_SEMANTIC_Hand            TW_CURSOR_HAND
+#define ANT_CURSOR_SEMANTIC_Cross           TW_CURSOR_CROSS
+#define ANT_CURSOR_SEMANTIC_UpArrow         TW_CURSOR_UPARROW
+#define ANT_CURSOR_SEMANTIC_No              TW_CURSOR_NO
+#define ANT_CURSOR_SEMANTIC_IBeam           TW_CURSOR_IBEAM
+#define ANT_CURSOR_SEMANTIC_Center          TW_CURSOR_CUSTOM
+#define ANT_CURSOR_SEMANTIC_Point           TW_CURSOR_CUSTOM
+
+#define ANT_CURSOR_BITMAP_Arrow             -1
+#define ANT_CURSOR_BITMAP_Move              -1
+#define ANT_CURSOR_BITMAP_WE                -1
+#define ANT_CURSOR_BITMAP_NS                -1
+#define ANT_CURSOR_BITMAP_TopRight          -1
+#define ANT_CURSOR_BITMAP_BottomLeft        -1
+#define ANT_CURSOR_BITMAP_TopLeft           -1
+#define ANT_CURSOR_BITMAP_BottomRight       -1
+#define ANT_CURSOR_BITMAP_Help              -1
+#define ANT_CURSOR_BITMAP_Hand              -1
+#define ANT_CURSOR_BITMAP_Cross             -1
+#define ANT_CURSOR_BITMAP_UpArrow           -1
+#define ANT_CURSOR_BITMAP_No                -1
+#define ANT_CURSOR_BITMAP_IBeam             -1
+#define ANT_CURSOR_BITMAP_Center            0
+#define ANT_CURSOR_BITMAP_Point             1
+
+#define ANT_SET_CURSOR(_Name)       g_TwMgr->SetCursor(g_TwMgr->m_Cursor##_Name, ANT_CURSOR_SEMANTIC_##_Name, ANT_CURSOR_BITMAP_##_Name)
+#define ANT_SET_ROTO_CURSOR(_Num)   g_TwMgr->SetCursor(g_TwMgr->m_RotoCursors[_Num], TW_CURSOR_CUSTOM, 2+(_Num))
 
 #if !defined(ANT_WINDOWS)
 #   define _stricmp strcasecmp

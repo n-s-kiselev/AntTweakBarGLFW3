@@ -60,7 +60,7 @@
 static const char *examples[] = {
     EXAMPLES_FOLDER "TwSimpleGLFW21.c",
     EXAMPLES_FOLDER "TwSimpleGLFW33.c",
-    EXAMPLES_FOLDER "TwSimpleGLFW34.c",
+    EXAMPLES_FOLDER "TwSimpleGLFW41.c",
     EXAMPLES_FOLDER "TwAdvanced1.cpp",
 };
 
