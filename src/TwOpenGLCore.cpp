@@ -14,14 +14,13 @@
 #define ANT_OGL_HEADER_INCLUDED ////
 */
 
-#define ANT_OGL_HEADER_INCLUDED  // Prevent redefinition in AntTweakBar
+// Calls glad's real gl* functions directly (not GLEW, not <OpenGL/gl3.h>) -
+// defining ANT_OGL_HEADER_INCLUDED before including LoadOGLCore.h tells it
+// to skip its own GL Core Profile declarations, which would otherwise
+// redefine the ones glad.h already provides.
+#define ANT_OGL_HEADER_INCLUDED
 #include <glad/glad.h>
 
-// DO NOT include <OpenGL/gl3.h> if you're using GLEW or GLAD
-// #if defined ANT_OSX
-// #   include <OpenGL/gl3.h>
-// #   define ANT_OGL_HEADER_INCLUDED
-// #endif
 #include "TwPrecomp.h"
 #include "LoadOGLCore.h"
 #include "TwOpenGLCore.h"
@@ -49,12 +48,12 @@ extern const char *g_ErrCantUnloadOGL;
         }
     }
 #   ifdef __FUNCTION__
-#       define CHECKgl_ERROR CheckGLCoreError(__FILE__, __LINE__, __FUNCTION__)
+#       define CHECK_GL_ERROR CheckGLCoreError(__FILE__, __LINE__, __FUNCTION__)
 #   else
-#       define CHECKgl_ERROR CheckGLCoreError(__FILE__, __LINE__, "")
+#       define CHECK_GL_ERROR CheckGLCoreError(__FILE__, __LINE__, "")
 #   endif
 #else
-#   define CHECKgl_ERROR ((void)(0))
+#   define CHECK_GL_ERROR ((void)(0))
 #endif
 
 //  ---------------------------------------------------------------------------
@@ -90,17 +89,17 @@ static void UnbindFont(GLuint _FontTexID)
 
 static GLuint CompileShader(GLuint shader)
 {
-    glCompileShader(shader); CHECKgl_ERROR;
+    glCompileShader(shader); CHECK_GL_ERROR;
 
     GLint status;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status); CHECKgl_ERROR;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status); CHECK_GL_ERROR;
     if (status == GL_FALSE)
     {
         GLint infoLogLength;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength); CHECKgl_ERROR;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength); CHECK_GL_ERROR;
 
         GLchar strInfoLog[256];
-        glGetShaderInfoLog(shader, sizeof(strInfoLog), NULL, strInfoLog); CHECKgl_ERROR;
+        glGetShaderInfoLog(shader, sizeof(strInfoLog), NULL, strInfoLog); CHECK_GL_ERROR;
 #ifdef ANT_WINDOWS
         OutputDebugString("Compile failure: ");
         OutputDebugString(strInfoLog);
@@ -115,17 +114,17 @@ static GLuint CompileShader(GLuint shader)
 
 static GLuint LinkProgram(GLuint program)
 {
-    glLinkProgram(program); CHECKgl_ERROR;
+    glLinkProgram(program); CHECK_GL_ERROR;
 
     GLint status;
-    glGetProgramiv(program, GL_LINK_STATUS, &status); CHECKgl_ERROR;
+    glGetProgramiv(program, GL_LINK_STATUS, &status); CHECK_GL_ERROR;
     if (status == GL_FALSE)
     {
         GLint infoLogLength;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength); CHECKgl_ERROR;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength); CHECK_GL_ERROR;
 
         GLchar strInfoLog[256];
-        glGetProgramInfoLog(program, sizeof(strInfoLog), NULL, strInfoLog); CHECKgl_ERROR;
+        glGetProgramInfoLog(program, sizeof(strInfoLog), NULL, strInfoLog); CHECK_GL_ERROR;
 #ifdef ANT_WINDOWS
         OutputDebugString("Linker failure: ");
         OutputDebugString(strInfoLog);
@@ -155,7 +154,7 @@ void CTwGraphOpenGLCore::ResizeTriBuffers(size_t _NewSize)
     glBindBuffer(GL_ARRAY_BUFFER, m_TriColors);
     glBufferData(GL_ARRAY_BUFFER, m_TriBufferSize*sizeof(color32), 0, GL_DYNAMIC_DRAW);
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
 
 //  ---------------------------------------------------------------------------
@@ -343,7 +342,7 @@ int CTwGraphOpenGLCore::Init()
     glGenBuffers(1, &m_TriColors);
     ResizeTriBuffers(16384); // set initial size
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
     return 1;
 }
 
@@ -355,7 +354,7 @@ int CTwGraphOpenGLCore::Shut()
 
     UnbindFont(m_FontTexID);
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 
     glDeleteProgram(m_LineRectProgram); m_LineRectProgram = 0;
     glDeleteShader(m_LineRectVS); m_LineRectVS = 0;
@@ -383,7 +382,7 @@ int CTwGraphOpenGLCore::Shut()
     glDeleteBuffers(1, &m_TriUVs); m_TriUVs = 0;
     glDeleteVertexArrays(1, &m_TriVArray); m_TriVArray = 0;
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 
     int Res = 1;
     if( UnloadOpenGLCore()==0 )
@@ -399,7 +398,7 @@ int CTwGraphOpenGLCore::Shut()
 
 void CTwGraphOpenGLCore::BeginDraw(int _WndWidth, int _WndHeight)
 {
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
     assert(m_Drawing==false && _WndWidth>0 && _WndHeight>0);
     m_Drawing = true;
     m_WndWidth = _WndWidth;
@@ -407,7 +406,7 @@ void CTwGraphOpenGLCore::BeginDraw(int _WndWidth, int _WndHeight)
     m_OffsetX = 0;
     m_OffsetY = 0;
 
-    glGetIntegerv(GL_VIEWPORT, m_PrevViewport); CHECKgl_ERROR;
+    glGetIntegerv(GL_VIEWPORT, m_PrevViewport); CHECK_GL_ERROR;
     if( _WndWidth>0 && _WndHeight>0 )
     {
         GLint Vp[4];
@@ -419,48 +418,48 @@ void CTwGraphOpenGLCore::BeginDraw(int _WndWidth, int _WndHeight)
     }
 
     m_PrevVArray = 0;
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*)&m_PrevVArray); CHECKgl_ERROR;
-    glBindVertexArray(0); CHECKgl_ERROR;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*)&m_PrevVArray); CHECK_GL_ERROR;
+    glBindVertexArray(0); CHECK_GL_ERROR;
 
     m_PrevLineWidth = 1;
-    glGetFloatv(GL_LINE_WIDTH, &m_PrevLineWidth); CHECKgl_ERROR;
-    glLineWidth(1); CHECKgl_ERROR;
+    glGetFloatv(GL_LINE_WIDTH, &m_PrevLineWidth); CHECK_GL_ERROR;
+    glLineWidth(1); CHECK_GL_ERROR;
 
     m_PrevLineSmooth = glIsEnabled(GL_LINE_SMOOTH);
-    glDisable(GL_LINE_SMOOTH); CHECKgl_ERROR;
+    glDisable(GL_LINE_SMOOTH); CHECK_GL_ERROR;
 
     m_PrevCullFace = glIsEnabled(GL_CULL_FACE);
-    glDisable(GL_CULL_FACE); CHECKgl_ERROR;
+    glDisable(GL_CULL_FACE); CHECK_GL_ERROR;
     
     m_PrevDepthTest = glIsEnabled(GL_DEPTH_TEST);
-    glDisable(GL_DEPTH_TEST); CHECKgl_ERROR;
+    glDisable(GL_DEPTH_TEST); CHECK_GL_ERROR;
 
     m_PrevBlend = glIsEnabled(GL_BLEND);
-    glEnable(GL_BLEND); CHECKgl_ERROR;
+    glEnable(GL_BLEND); CHECK_GL_ERROR;
 
     m_PrevScissorTest = glIsEnabled(GL_SCISSOR_TEST);
-    glDisable(GL_SCISSOR_TEST); CHECKgl_ERROR;
+    glDisable(GL_SCISSOR_TEST); CHECK_GL_ERROR;
 
-    glGetIntegerv(GL_SCISSOR_BOX, m_PrevScissorBox); CHECKgl_ERROR;
+    glGetIntegerv(GL_SCISSOR_BOX, m_PrevScissorBox); CHECK_GL_ERROR;
 
-    glGetIntegerv(GL_BLEND_SRC, &m_PrevSrcBlend); CHECKgl_ERROR;
-    glGetIntegerv(GL_BLEND_DST, &m_PrevDstBlend); CHECKgl_ERROR;
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); CHECKgl_ERROR;
+    glGetIntegerv(GL_BLEND_SRC, &m_PrevSrcBlend); CHECK_GL_ERROR;
+    glGetIntegerv(GL_BLEND_DST, &m_PrevDstBlend); CHECK_GL_ERROR;
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); CHECK_GL_ERROR;
 
     m_PrevTexture = 0;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &m_PrevTexture); CHECKgl_ERROR;
-    glBindTexture(GL_TEXTURE_2D, 0); CHECKgl_ERROR;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &m_PrevTexture); CHECK_GL_ERROR;
+    glBindTexture(GL_TEXTURE_2D, 0); CHECK_GL_ERROR;
 
     m_PrevProgramObject = 0;
-    glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&m_PrevProgramObject); CHECKgl_ERROR;
-    glBindVertexArray(0); CHECKgl_ERROR;
-    glUseProgram(0); CHECKgl_ERROR;  
+    glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&m_PrevProgramObject); CHECK_GL_ERROR;
+    glBindVertexArray(0); CHECK_GL_ERROR;
+    glUseProgram(0); CHECK_GL_ERROR;  
 
     m_PrevActiveTexture = 0;
-    glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&m_PrevActiveTexture); CHECKgl_ERROR;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&m_PrevActiveTexture); CHECK_GL_ERROR;
     glActiveTexture(GL_TEXTURE0);
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
 
 //  ---------------------------------------------------------------------------
@@ -470,66 +469,66 @@ void CTwGraphOpenGLCore::EndDraw()
     assert(m_Drawing==true);
     m_Drawing = false;
 
-    glLineWidth(m_PrevLineWidth); CHECKgl_ERROR;
+    glLineWidth(m_PrevLineWidth); CHECK_GL_ERROR;
 
     if( m_PrevLineSmooth )
     {
-      glEnable(GL_LINE_SMOOTH); CHECKgl_ERROR;
+      glEnable(GL_LINE_SMOOTH); CHECK_GL_ERROR;
     }
     else
     {
-      glDisable(GL_LINE_SMOOTH); CHECKgl_ERROR;      
+      glDisable(GL_LINE_SMOOTH); CHECK_GL_ERROR;      
     }
 
     if( m_PrevCullFace )
     {
-      glEnable(GL_CULL_FACE); CHECKgl_ERROR;
+      glEnable(GL_CULL_FACE); CHECK_GL_ERROR;
     }
     else
     {
-      glDisable(GL_CULL_FACE); CHECKgl_ERROR;      
+      glDisable(GL_CULL_FACE); CHECK_GL_ERROR;      
     }
 
     if( m_PrevDepthTest )
     {
-      glEnable(GL_DEPTH_TEST); CHECKgl_ERROR;
+      glEnable(GL_DEPTH_TEST); CHECK_GL_ERROR;
     }
     else
     {
-      glDisable(GL_DEPTH_TEST); CHECKgl_ERROR;      
+      glDisable(GL_DEPTH_TEST); CHECK_GL_ERROR;      
     }
 
     if( m_PrevBlend )
     {
-      glEnable(GL_BLEND); CHECKgl_ERROR;
+      glEnable(GL_BLEND); CHECK_GL_ERROR;
     }
     else
     {
-      glDisable(GL_BLEND); CHECKgl_ERROR;      
+      glDisable(GL_BLEND); CHECK_GL_ERROR;      
     }
 
     if( m_PrevScissorTest )
     {
-      glEnable(GL_SCISSOR_TEST); CHECKgl_ERROR;
+      glEnable(GL_SCISSOR_TEST); CHECK_GL_ERROR;
     }
     else
     {
-      glDisable(GL_SCISSOR_TEST); CHECKgl_ERROR;      
+      glDisable(GL_SCISSOR_TEST); CHECK_GL_ERROR;      
     }
 
-    glScissor(m_PrevScissorBox[0], m_PrevScissorBox[1], m_PrevScissorBox[2], m_PrevScissorBox[3]); CHECKgl_ERROR;
+    glScissor(m_PrevScissorBox[0], m_PrevScissorBox[1], m_PrevScissorBox[2], m_PrevScissorBox[3]); CHECK_GL_ERROR;
 
-    glBlendFunc(m_PrevSrcBlend, m_PrevDstBlend); CHECKgl_ERROR;
+    glBlendFunc(m_PrevSrcBlend, m_PrevDstBlend); CHECK_GL_ERROR;
 
-    glBindTexture(GL_TEXTURE_2D, m_PrevTexture); CHECKgl_ERROR;
+    glBindTexture(GL_TEXTURE_2D, m_PrevTexture); CHECK_GL_ERROR;
 
-    glUseProgram(m_PrevProgramObject); CHECKgl_ERROR;
+    glUseProgram(m_PrevProgramObject); CHECK_GL_ERROR;
     
-    glBindVertexArray(m_PrevVArray); CHECKgl_ERROR;
+    glBindVertexArray(m_PrevVArray); CHECK_GL_ERROR;
 
-    glViewport(m_PrevViewport[0], m_PrevViewport[1], m_PrevViewport[2], m_PrevViewport[3]); CHECKgl_ERROR;
+    glViewport(m_PrevViewport[0], m_PrevViewport[1], m_PrevViewport[2], m_PrevViewport[3]); CHECK_GL_ERROR;
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
 
 //  ---------------------------------------------------------------------------
@@ -564,7 +563,7 @@ static inline float ToNormScreenY(float y, int wndHeight)
 
 void CTwGraphOpenGLCore::DrawLine(int _X0, int _Y0, int _X1, int _Y1, color32 _Color0, color32 _Color1, bool _AntiAliased)
 {
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
     assert(m_Drawing==true);
 
     //const GLfloat dx = +0.0f;
@@ -600,14 +599,14 @@ void CTwGraphOpenGLCore::DrawLine(int _X0, int _Y0, int _X1, int _Y1, color32 _C
     if( _AntiAliased )
         glDisable(GL_LINE_SMOOTH);
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
   
 //  ---------------------------------------------------------------------------
 
 void CTwGraphOpenGLCore::DrawRect(int _X0, int _Y0, int _X1, int _Y1, color32 _Color00, color32 _Color10, color32 _Color01, color32 _Color11)
 {
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
     assert(m_Drawing==true);
 
     // border adjustment
@@ -641,7 +640,7 @@ void CTwGraphOpenGLCore::DrawRect(int _X0, int _Y0, int _X1, int _Y1, color32 _C
     glUseProgram(m_LineRectProgram);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
 
 //  ---------------------------------------------------------------------------
@@ -752,7 +751,7 @@ void CTwGraphOpenGLCore::BuildText(void *_TextObj, const std::string *_TextLines
 
 void CTwGraphOpenGLCore::DrawText(void *_TextObj, int _X, int _Y, color32 _Color, color32 _BgColor)
 {
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
     assert(m_Drawing==true);
     assert(_TextObj!=NULL);
     CTextObj *TextObj = static_cast<CTextObj *>(_TextObj);
@@ -844,7 +843,7 @@ void CTwGraphOpenGLCore::DrawText(void *_TextObj, int _X, int _Y, color32 _Color
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)TextObj->m_TextVerts.size());
     }
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
 
 //  ---------------------------------------------------------------------------
@@ -931,7 +930,7 @@ void CTwGraphOpenGLCore::DrawTriangles(int _NumTriangles, int *_Vertices, color3
     else
         glDisable(GL_CULL_FACE);
 
-    CHECKgl_ERROR;
+    CHECK_GL_ERROR;
 }
 
 //  ---------------------------------------------------------------------------

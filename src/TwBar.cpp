@@ -13,7 +13,8 @@
 #include "TwMgr.h"
 #include "TwBar.h"
 #include "TwColors.h"
-  
+#include <GLFW/glfw3.h> // EditInPlaceGetClipboard/SetClipboard delegate to GLFW3's clipboard
+
 using namespace std;
 
 extern const char *g_ErrNotFound;
@@ -4075,10 +4076,11 @@ void CTwBar::ListLabels(vector<string>& _Labels, vector<color32>& _Colors, vecto
             else if( !m_HierTags[h].m_Var->IsGroup() && static_cast<const CTwVarAtom *>(m_HierTags[h].m_Var)->m_Type==TW_TYPE_BUTTON )
             {
                 if( static_cast<const CTwVarAtom *>(m_HierTags[h].m_Var)->m_Val.m_Button.m_Callback==NULL )
-                    WidthMax = _GroupWidthMax;
-                else if( m_ButtonAlign == BUTTON_ALIGN_RIGHT )
-                    WidthMax = _GroupWidthMax - 2*IncrBtnWidth(m_Font->m_CharHeight);
+                    WidthMax = _GroupWidthMax; // separator/info line: label may use the full row width
                 else
+                    // Interactive button: label is clipped to the normal atom label
+                    // column, like every other variable type, since the button itself
+                    // now fills the value column instead of squeezing next to the label.
                     WidthMax = _AtomWidthMax;
             }
             //else if( m_HighlightedLine==h && m_DrawRotoBtn )
@@ -5070,8 +5072,12 @@ void CTwBar::Draw(int _DrawPart)
                     }
                     else
                     {
-                        cbx0 = m_PosX+m_VarX2-2*bw+bw/2;
-                        cbx1 = m_PosX+m_VarX2-2-bw/2;
+                        // BUTTON_ALIGN_RIGHT (default): span the whole value
+                        // column, matching the width/position of every other
+                        // widget type (color swatches, text-edit boxes, ...)
+                        // instead of a narrow button squeezed at the right edge.
+                        cbx0 = m_PosX+m_VarX1+1;
+                        cbx1 = m_PosX+m_VarX2-2;
                     }
                     int cby0 = yh+3;
                     int cby1 = yh+m_Font->m_CharHeight-3;
@@ -7628,7 +7634,13 @@ bool CTwBar::EditInPlaceKeyPressed(int _Key, int _Modifiers)
             DoPaste = true;
         break;
     default:
+#if defined ANT_OSX
+        // macOS convention is Command+C/Command+V, not Control+C/Control+V;
+        // accept either so both muscle memories work.
+        if( _Modifiers==TW_KMOD_CTRL || _Modifiers==TW_KMOD_META )
+#else
         if( _Modifiers==TW_KMOD_CTRL )
+#endif
         {
             if( _Key=='c' || _Key=='C' )
                 DoCopy = true;
@@ -7719,47 +7731,17 @@ bool CTwBar::EditInPlaceMouseMove(int _X, int _Y, bool _Select)
 bool CTwBar::EditInPlaceGetClipboard(std::string *_OutString)
 {
     assert( _OutString!=NULL );
-    *_OutString = m_EditInPlace.m_Clipboard; // default implementation
+    *_OutString = m_EditInPlace.m_Clipboard; // default implementation, used if
+                                              // the system clipboard is empty
+                                              // or glfwGetClipboardString fails
 
-#if defined ANT_WINDOWS
-
-    if( !IsClipboardFormatAvailable(CF_TEXT) )
-        return false;
-    if( !OpenClipboard(NULL) )
-        return false;
-    HGLOBAL TextHandle = GetClipboardData(CF_TEXT); 
-    if( TextHandle!=NULL ) 
-    { 
-        const char *TextString = static_cast<char *>(GlobalLock(TextHandle));
-        if( TextHandle!=NULL )
-        {
-            *_OutString = TextString;
-            GlobalUnlock(TextHandle);
-        } 
-    }
-    CloseClipboard(); 
-
-#elif defined ANT_UNIX
-
-    if( g_TwMgr->m_CurrentXDisplay!=NULL )
-    {
-        int NbBytes = 0;
-        char *Buffer = XFetchBytes(g_TwMgr->m_CurrentXDisplay, &NbBytes);
-        if( Buffer!=NULL )
-        {
-            if( NbBytes>0 )
-            {
-                char *Text = new char[NbBytes+1];
-                memcpy(Text, Buffer, NbBytes);
-                Text[NbBytes] = '\0';
-                *_OutString = Text;
-                delete[] Text;
-            }
-            XFree(Buffer);
-        }
-    }
-
-#endif
+    // Delegate to GLFW3 rather than AntTweakBar's own hand-rolled
+    // Win32/NSPasteboard/X11-ICCCM clipboard code - GLFW3 already solves this
+    // portably (window param is deprecated/nullable since GLFW 3.0, see
+    // glfw3.h), so there's no need to duplicate or maintain it here.
+    const char *ClipboardText = glfwGetClipboardString(NULL);
+    if( ClipboardText!=NULL )
+        *_OutString = ClipboardText;
 
     return true;
 }
@@ -7771,40 +7753,25 @@ bool CTwBar::EditInPlaceSetClipboard(const std::string& _String)
         return false;   // keep last clipboard
     m_EditInPlace.m_Clipboard = _String; // default implementation
 
-#if defined ANT_WINDOWS
-
-    if( !OpenClipboard(NULL) )
-        return false;
-    EmptyClipboard();
-    HGLOBAL TextHandle = GlobalAlloc(GMEM_MOVEABLE, _String.length()+1);
-    if( TextHandle==NULL )
-    { 
-        CloseClipboard(); 
-        return false; 
-    }
-    char *TextString = static_cast<char *>(GlobalLock(TextHandle));
-    memcpy(TextString, _String.c_str(), _String.length());
-    TextString[_String.length()] = '\0';
-    GlobalUnlock(TextHandle); 
-    SetClipboardData(CF_TEXT, TextHandle);
-    CloseClipboard();
-
-#elif defined ANT_UNIX
-
-    if( g_TwMgr->m_CurrentXDisplay!=NULL )
-    {
-        XSetSelectionOwner(g_TwMgr->m_CurrentXDisplay, XA_PRIMARY, None, CurrentTime);
-        char *Text = new char[_String.length()+1];
-        memcpy(Text, _String.c_str(), _String.length());
-        Text[_String.length()] = '\0';
-        XStoreBytes(g_TwMgr->m_CurrentXDisplay, Text, _String.length());
-        delete[] Text;
-    }
-
-#endif
+    glfwSetClipboardString(NULL, _String.c_str());
 
     return true;
 }
+
+
+#if defined ANT_UNIX
+int TW_CALL TwHandleX11SelectionRequest(void *_XEvent)
+{
+    // AntTweakBar no longer claims the X11 CLIPBOARD/PRIMARY selection
+    // itself (see EditInPlaceSetClipboard, above - GLFW3's own X11 backend
+    // does that internally now), so there is nothing left to answer here.
+    // Kept as a no-op (rather than removed) so existing callers
+    // (TwEventX11.c) and the public API (AntTweakBar.h) keep compiling and
+    // linking unchanged.
+    (void)_XEvent;
+    return 0;
+}
+#endif
 
 
 //  ---------------------------------------------------------------------------

@@ -7,9 +7,7 @@
 //
 //  ---------------------------------------------------------------------------
 
-// #define GLFW_EXPOSE_NATIVE_X11//NSK
-// #include <GLFW/glfw3.h>//NSK
-// #include <GLFW/glfw3native.h>//NSK
+
 #include "TwPrecomp.h"
 #include <AntTweakBar.h>
 #include "TwMgr.h"
@@ -18,6 +16,10 @@
 #include "TwOpenGL.h"
 #include "TwOpenGLCore.h"
 #ifdef ANT_WINDOWS
+#   include "TwDirect3D9.h"
+#   include "TwDirect3D10.h"
+#   include "TwDirect3D11.h"
+#   include "resource.h"
 #   ifdef _DEBUG
 #       include <crtdbg.h>
 #   endif // _DEBUG
@@ -1760,6 +1762,46 @@ static int TwCreateGraph(ETwGraphAPI _GraphAPI)
     case TW_OPENGL_CORE:
         g_TwMgr->m_Graph = new CTwGraphOpenGLCore;
         break;
+    case TW_DIRECT3D9:
+        // TW_NO_DIRECT3D: this build (see nob.c) targets the OpenGL backend
+        // only (README.md) and doesn't compile/link TwDirect3D9/10/11.cpp -
+        // without this guard, ANT_WINDOWS alone is enough for this
+        // unconditional "new CTwGraphDirect3D9" to require those classes'
+        // vtables at link time even though no example ever requests
+        // TW_DIRECT3D9. TwInit() falls through to the "unknown API" error
+        // below instead, same as any other unsupported ETwGraphAPI value.
+        #if defined(ANT_WINDOWS) && !defined(TW_NO_DIRECT3D)
+            if( g_TwMgr->m_Device!=NULL )
+                g_TwMgr->m_Graph = new CTwGraphDirect3D9;
+            else
+            {
+                g_TwMgr->SetLastError(g_ErrBadDevice);
+                return 0;
+            }
+        #endif // ANT_WINDOWS && !TW_NO_DIRECT3D
+        break;
+    case TW_DIRECT3D10:
+        #if defined(ANT_WINDOWS) && !defined(TW_NO_DIRECT3D)
+            if( g_TwMgr->m_Device!=NULL )
+                g_TwMgr->m_Graph = new CTwGraphDirect3D10;
+            else
+            {
+                g_TwMgr->SetLastError(g_ErrBadDevice);
+                return 0;
+            }
+        #endif // ANT_WINDOWS && !TW_NO_DIRECT3D
+        break;
+    case TW_DIRECT3D11:
+        #if defined(ANT_WINDOWS) && !defined(TW_NO_DIRECT3D)
+            if( g_TwMgr->m_Device!=NULL )
+                g_TwMgr->m_Graph = new CTwGraphDirect3D11;
+            else
+            {
+                g_TwMgr->SetLastError(g_ErrBadDevice);
+                return 0;
+            }
+        #endif // ANT_WINDOWS && !TW_NO_DIRECT3D
+        break;
     }
 
     if( g_TwMgr->m_Graph==NULL )
@@ -2035,11 +2077,8 @@ int ANT_CALL TwWindowExists(int wndID)
 
 //  ---------------------------------------------------------------------------
 
-// int ANT_CALL TwDraw(void* _window)//NSK
 int ANT_CALL TwDraw()
 {
-    // GLFWwindow* window = (GLFWwindow*)_window;//NSK
-    
     PERF( PerfTimer Timer; double DT; )
     //CTwFPU fpu;   // fpu precision only forced in update (do not modif dx draw calls)
 
@@ -2060,7 +2099,7 @@ int ANT_CALL TwDraw()
         if( !g_TwMgr->m_CursorsCreated )
             g_TwMgr->CreateCursors();
     #elif defined(ANT_UNIX)
-        if( !g_TwMgr->m_CurrentXDisplay)
+        if( !g_TwMgr->m_CurrentXDisplay )
             g_TwMgr->m_CurrentXDisplay = glXGetCurrentDisplay();
         if( !g_TwMgr->m_CurrentXWindow && g_TwMgr->m_CurrentXDisplay )
         {
@@ -6285,7 +6324,7 @@ void CTwMgr::CreateCursors()
         if( m_RotoCursors[cur]==NULL )
             m_RotoCursors[cur] = ::LoadCursor(NULL ,MAKEINTRESOURCE(IDC_CROSS));
     }
-    
+
     m_CursorsCreated = true;
 }
 
@@ -6412,7 +6451,7 @@ void CTwMgr::CreateCursors()
 {
     if (m_CursorsCreated)
         return;
-
+    
     m_CursorArrow        = [[NSCursor arrowCursor] retain];
     m_CursorMove         = [[NSCursor crosshairCursor] retain];
     m_CursorWE           = [[NSCursor resizeLeftRightCursor] retain];
@@ -6472,13 +6511,6 @@ void CTwMgr::SetCursor(CTwMgr::CCursor _Cursor, ETwCursor _Semantic, int _Bitmap
 #elif defined(ANT_UNIX)
 
 static XErrorHandler s_PrevErrorHandler = NULL;
-
-// static int InactiveErrorHandler(Display *display, XErrorEvent *err)
-// {
-//     // fprintf(stderr, "Ignoring Xlib error: error code %d request code %d\n", err->error_code, err->request_code);
-//     // No exit!
-//     return 0 ;
-// }
 
 static int InactiveErrorHandler(Display *display, XErrorEvent *err)
 {

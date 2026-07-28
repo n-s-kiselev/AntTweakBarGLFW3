@@ -10,10 +10,13 @@
 //
 //  ---------------------------------------------------------------------------
 
-//NKSB
+
 #if !defined ANT_LOAD_OGL_CORE_INCLUDED
 #define ANT_LOAD_OGL_CORE_INCLUDED
 
+// glad already declares PFNGLBINDVERTEXARRAYPROC/etc. under those names (see
+// USE_GLAD in LoadOGLCore.cpp/TwOpenGLCore.cpp); alias this header's own
+// PFNgl* names to them instead of redeclaring, so both can coexist.
 #ifndef PFNglBindVertexArray
 #define PFNglBindVertexArray PFNGLBINDVERTEXARRAYPROC
 #endif
@@ -37,7 +40,6 @@
     typedef PROC (WINAPI *PFNwglGetProcAddress)(LPCSTR);
     #endif
 #endif
-//NKSE
 
 #define ANT_GL_CORE_DECL_NO_FORWARD(_Ret, _Fct, _Params) \
     extern "C" { typedef _Ret (APIENTRY* PFN##_Fct)_Params; } \
@@ -74,7 +76,12 @@ namespace GLCore
 }
 using GLCore::_glGetProcAddress;
 
+// glad (see USE_GLAD in LoadOGLCore.cpp/TwOpenGLCore.cpp) already declares
+// every GL Core Profile function this header would otherwise redeclare
+// below; TwOpenGLCore.cpp defines ANT_OGL_HEADER_INCLUDED before including
+// this header specifically to skip them and avoid a redefinition error.
 #ifndef ANT_OGL_HEADER_INCLUDED
+
 // GL 1.0
 ANT_GL_CORE_DECL(void, glCullFace, (GLenum mode))
 ANT_GL_CORE_DECL(void, glFrontFace, (GLenum mode))
@@ -383,8 +390,6 @@ ANT_GL_CORE_DECL_NO_FORWARD(GLboolean, glIsVertexArray, (GLuint array))
 ANT_GL_CORE_DECL(PROC, wglGetProcAddress, (LPCSTR))
 #endif                                                                                                                                                                                                                                                                                                                                                
 
-#endif//ifndef ANT_OGL_HEADER_INCLUDED
-
 #ifndef GL_CLAMP_TO_EDGE
 #   define GL_CLAMP_TO_EDGE     0x812F
 #endif
@@ -425,5 +430,6 @@ ANT_GL_CORE_DECL(PROC, wglGetProcAddress, (LPCSTR))
 #   define GL_BGRA              0x80E1
 #endif
 
+#endif // !defined ANT_OGL_HEADER_INCLUDED
 
 #endif // !defined ANT_LOAD_OGL_CORE_INCLUDED

@@ -7,13 +7,17 @@
 //
 //  ---------------------------------------------------------------------------
 
-#define USE_GLAD
-#include <glad/glad.h>
 
-#if defined ANT_OSX
-#   include <OpenGL/gl3.h>
-#   define ANT_OGL_HEADER_INCLUDED
-#endif
+// glad must be included before TwPrecomp.h: on macOS, TwPrecomp.h itself
+// unconditionally pulls in <OpenGL/gl.h>, and glad refuses to compile
+// (`#error OpenGL header already included`) if a real GL header preceded
+// it. Defining ANT_OGL_HEADER_INCLUDED here (regardless of platform) tells
+// LoadOGLCore.h to skip its own GL Core Profile declarations everywhere,
+// since glad already provides them - see the matching comment in
+// TwOpenGLCore.cpp, which uses the same include order for the same reason.
+#define USE_GLAD
+#define ANT_OGL_HEADER_INCLUDED
+#include <glad/glad.h>
 
 #include "TwPrecomp.h"
 #include "LoadOGLCore.h"
@@ -35,7 +39,15 @@ HMODULE g_OGLCoreModule = NULL;
 #endif
 
 //  ---------------------------------------------------------------------------
+
+// Every ANT_GL_CORE_IMPL below pairs with an ANT_GL_CORE_DECL_NO_FORWARD in
+// LoadOGLCore.h, which itself is skipped whenever ANT_OGL_HEADER_INCLUDED is
+// already defined (glad already declares these). Nothing references any
+// GLCore::_glFoo symbol anymore (TwOpenGLCore.cpp calls glad's glFoo
+// directly - see its own header comment), so skipping the definitions here
+// too is just avoiding dead code, not losing functionality.
 #ifndef USE_GLAD
+
 // GL 1.0
 ANT_GL_CORE_IMPL(glCullFace)
 ANT_GL_CORE_IMPL(glFrontFace)
@@ -316,7 +328,8 @@ ANT_GL_CORE_IMPL(glPrimitiveRestartIndex)
 //ANT_GL_CORE_IMPL(glGetBufferParameteri64v)
 ANT_GL_CORE_IMPL(glFramebufferTexture)
 */
-#endif//ifndef USE_GLAD
+
+#endif // !USE_GLAD
 
 // GL_ARB_vertex_array_object
 #if defined(ANT_WINDOWS)
@@ -327,14 +340,13 @@ ANT_GL_CORE_IMPL(glFramebufferTexture)
 #else
     // these extensions are loaded explicitely by LoadOpenGLCore
     // because they may not be avialable on non-OpenGL 3.2 environments
-    //NSK
-    // namespace GLCore 
-    // { 
-    //     PFNglBindVertexArray _glBindVertexArray = NULL; 
-    //     PFNglDeleteVertexArrays _glDeleteVertexArrays = NULL; 
-    //     PFNglGenVertexArrays _glGenVertexArrays = NULL; 
-    //     PFNglIsVertexArray _glIsVertexArray = NULL; 
-    // }
+    namespace GLCore 
+    { 
+        PFNglBindVertexArray _glBindVertexArray = NULL; 
+        PFNglDeleteVertexArrays _glDeleteVertexArrays = NULL; 
+        PFNglGenVertexArrays _glGenVertexArrays = NULL; 
+        PFNglIsVertexArray _glIsVertexArray = NULL; 
+    }
 #endif
 
 #if defined(ANT_WINDOWS)
@@ -458,25 +470,19 @@ namespace GLCore { PFNGLGetProcAddress _glGetProcAddress = NULL; }
 //  ---------------------------------------------------------------------------
 
 #if defined(ANT_UNIX)
-    
+
+    // See the matching comment in the ANT_OSX branch below: this fork's
+    // Core Profile examples already load glBindVertexArray/etc. via
+    // gladLoadGLLoader() before TwInit(TW_OPENGL_CORE, ...), so the manual
+    // glXGetProcAddressARB lookup this used to do is redundant - and would
+    // no longer compile anyway, since ANT_OGL_HEADER_INCLUDED (always
+    // defined now - see the top of this file) skips LoadOGLCore.h's own
+    // declarations of these symbols everywhere, not just on ANT_OSX.
     int LoadOpenGLCore()
     {
-        // _glGetProcAddress = reinterpret_cast<GLCore::PFNGLGetProcAddress>(glXGetProcAddressARB);
-
-        // _glBindVertexArray = reinterpret_cast<PFNglBindVertexArray>(_glGetProcAddress("glBindVertexArray"));
-        // _glDeleteVertexArrays = reinterpret_cast<PFNglDeleteVertexArrays>(_glGetProcAddress("glDeleteVertexArrays"));
-        // _glGenVertexArrays = reinterpret_cast<PFNglGenVertexArrays>(_glGetProcAddress("glGenVertexArrays"));
-        // _glIsVertexArray = reinterpret_cast<PFNglIsVertexArray>(_glGetProcAddress("glIsVertexArray"));
-
-        // if( _glBindVertexArray==NULL || _glDeleteVertexArrays==NULL || _glGenVertexArrays==NULL || _glIsVertexArray==NULL )
-        // {
-        //     fprintf(stderr, "AntTweakBar: OpenGL Core Profile functions cannot be loaded.\n");
-        //     return 0;
-        // }
-        // else
-            return 1;
+        return 1;
     }
-    
+
     int UnloadOpenGLCore()
     {
         return 1;
@@ -484,64 +490,23 @@ namespace GLCore { PFNGLGetProcAddress _glGetProcAddress = NULL; }
     
 #elif defined(ANT_OSX)
 
-    #include <dlfcn.h>
-
-    static void *gl_dyld = NULL;
-    static const char *gl_prefix = "_";
-    void *NSGLCoreGetProcAddressNew(const GLubyte *name)
+    // glBindVertexArray/glDeleteVertexArrays/glGenVertexArrays/
+    // glIsVertexArray (GL_ARB_vertex_array_object) used to be looked up here
+    // by hand via dlsym on the OpenGL framework, since they were an
+    // extension on pre-3.2 contexts. This fork's Core Profile examples
+    // already call gladLoadGLLoader() before TwInit(TW_OPENGL_CORE, ...)
+    // (see e.g. examples/TwSimpleGLFW33.c), which loads these as the core
+    // functions they are for any 3.2+ context - nothing left to do here.
+    int LoadOpenGLCore()
     {
-        void *proc=NULL;
-        if (gl_dyld == NULL) 
-        {
-            gl_dyld = dlopen("OpenGL",RTLD_LAZY);
-        }
-        if (gl_dyld) 
-        {
-            NSString *sym = [[NSString alloc] initWithFormat: @"%s%s",gl_prefix,name];
-            proc = dlsym(gl_dyld,[sym UTF8String]);
-            [sym release];
-        }
-        return proc;
-    }
-
-    int LoadOpenGLCore() 
-    {
-        // _glGetProcAddress = reinterpret_cast<GLCore::PFNGLGetProcAddress>(NSGLCoreGetProcAddressNew);
-
-        // _glBindVertexArray = reinterpret_cast<PFNglBindVertexArray>(_glGetProcAddress("glBindVertexArray"));
-        // _glDeleteVertexArrays = reinterpret_cast<PFNglDeleteVertexArrays>(_glGetProcAddress("glDeleteVertexArrays"));
-        // _glGenVertexArrays = reinterpret_cast<PFNglGenVertexArrays>(_glGetProcAddress("glGenVertexArrays"));
-        // _glIsVertexArray = reinterpret_cast<PFNglIsVertexArray>(_glGetProcAddress("glIsVertexArray"));
-        
-        // if( _glBindVertexArray==NULL || _glDeleteVertexArrays==NULL || _glGenVertexArrays==NULL || _glIsVertexArray==NULL )
-        // {
-		// 	// remove the symbols underscore prefix (OSX 10.7 and later)
-		// 	gl_prefix = "";
-            
-        //     _glBindVertexArray = reinterpret_cast<PFNglBindVertexArray>(_glGetProcAddress("glBindVertexArray"));
-        //     _glDeleteVertexArrays = reinterpret_cast<PFNglDeleteVertexArrays>(_glGetProcAddress("glDeleteVertexArrays"));
-        //     _glGenVertexArrays = reinterpret_cast<PFNglGenVertexArrays>(_glGetProcAddress("glGenVertexArrays"));
-        //     _glIsVertexArray = reinterpret_cast<PFNglIsVertexArray>(_glGetProcAddress("glIsVertexArray"));
-
-        //     if( _glBindVertexArray==NULL || _glDeleteVertexArrays==NULL || _glGenVertexArrays==NULL || _glIsVertexArray==NULL )
-		// 	{
-        //         fprintf(stderr, "AntTweakBar: OpenGL Core Profile functions cannot be loaded.\n");
-        //         return 0;                
-		// 	}
-        // }
-        
         return 1;
     }
 
-    int UnloadOpenGLCore() 
+    int UnloadOpenGLCore()
     {
-    //    if (gl_dyld) 
-    //    {
-    //        dlclose(gl_dyld);
-    //        gl_dyld = NULL;
-    //    }
-       return 1;
-   }    
+        return 1;
+    }
+
    
 #endif
 

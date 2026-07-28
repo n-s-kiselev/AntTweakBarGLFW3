@@ -249,8 +249,15 @@ static bool build_object(const char *source, const char *folder, const char *tw_
     // Matches src/Makefile's CPPCFG: unconditional -fPIC (not just for the
     // shared object set - harmless for the static archive, and matches this
     // repo's own established convention).
+    // -I GLFW_INCLUDE: TwBar.cpp's EditInPlaceGetClipboard/SetClipboard call
+    // glfwGetClipboardString/glfwSetClipboardString directly (see its own
+    // header comment) - only the header is needed here, not GLFW_OBJ. The
+    // symbols stay undefined in LIB_STATIC/LIB_SHARED and resolve at
+    // final-link time against whichever single GLFW instance the consuming
+    // application itself initializes (see docs/plans/
+    // reapply-fork-changes-on-legacy-baseline.md Step 4b).
     nob_cmd_append(&cmd, "-Wall", "-O3", "-fno-strict-aliasing", "-fPIC",
-                        "-I" INCLUDE_FOLDER, "-I" GLAD_INCLUDE, tw_define);
+                        "-I" INCLUDE_FOLDER, "-I" GLAD_INCLUDE, "-I" GLFW_INCLUDE, tw_define);
     append_platform_defines(&cmd);
 #if defined(__APPLE__)
     nob_cmd_append(&cmd, "-x", "objective-c++");
